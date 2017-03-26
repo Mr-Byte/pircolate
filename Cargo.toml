@@ -1,7 +1,9 @@
 [package]
 name = "pircolate"
 version = "0.1.0"
-authors = ["Joshua Rodgers <bytemr@gmail.com>"]
+authors = ["Joshua R. Rodgers <bytemr@gmail.com>"]
+license = "Apache-2.0/MIT"
+description = "Parser and interface for IRCv3 messages."
 
 [dependencies]
 error-chain = "0.8"
