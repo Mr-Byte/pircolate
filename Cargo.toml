@@ -1,0 +1,7 @@
+[package]
+name = "pircolate"
+version = "0.1.0"
+authors = ["Joshua Rodgers <bytemr@gmail.com>"]
+
+[dependencies]
+error-chain = "0.8"
