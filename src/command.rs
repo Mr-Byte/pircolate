@@ -94,9 +94,10 @@ impl<'a> Command<'a> for Privmsg<'a> {
 
 // Simple numerics are the numerics which have nothing but a single associated message. For
 // these, we avail ourselves of a macro to define a suitable command implementation.
-
 macro_rules! simple_numeric {
-    ($num:expr, $numeric_name:ident) => (
+    // Hackyness to allow doc-comments; it looks kinda icky, but it works!
+    ($(#[$meta:meta])* ($num:expr, $numeric_name:ident)) => (
+        $(#[$meta])*
         pub struct $numeric_name<'a>(pub &'a str);
 
         impl<'a> Command<'a> for $numeric_name<'a> {
@@ -111,10 +112,22 @@ macro_rules! simple_numeric {
     )
 }
 
-simple_numeric!("001", Welcome);
-simple_numeric!("002", YourHost);
-simple_numeric!("003", Created);
-simple_numeric!("004", ServerInfo);
+simple_numeric!{
+  /// Represents a WELCOME numeric. The welcome message is the only element.
+  ("001", Welcome)
+}
+simple_numeric!{
+  /// Represents a YOURHOST numeric. The yourhost message is the only element.
+  ("002", YourHost)
+}
+simple_numeric!{
+  /// Represents a CREATED numeric. The created message is the only element.
+  ("003", Created)
+}
+simple_numeric!{
+  /// Represents a MYINFO numeric. The server info message is the only element.
+  ("004", ServerInfo)
+}
 
 #[cfg(test)]
 mod tests {
