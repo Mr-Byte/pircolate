@@ -146,21 +146,21 @@ pub fn privmsg<T: Into<String>, M: Into<String>>(targets: T, message: M) -> Resu
 }
 
 /// Constructs a message containing a WELCOME numeric with the specified contents.
-pub fn welcome<T: Into<String>>(target: T, message: T) -> Result<Message> {
+pub fn welcome<T: Into<String>, M: Into<String>>(target: T, message: M) -> Result<Message> {
     Message::try_from(format!("001 {} :{}", target.into(), message.into()))
 }
 
 /// Constructs a message containing a YOURHOST numeric with the specified contents.
-pub fn yourhost<T: Into<String>>(target: T, message: T) -> Result<Message> {
+pub fn your_host<T: Into<String>, M: Into<String>>(target: T, message: M) -> Result<Message> {
     Message::try_from(format!("002 {} :{}", target.into(), message.into()))
 }
 
 /// Constructs a message containing a CREATED numeric with the specified contents.
-pub fn created<T: Into<String>>(target: T, message: T) -> Result<Message> {
+pub fn created<T: Into<String>, M: Into<String>>(target: T, message: M) -> Result<Message> {
     Message::try_from(format!("003 {} :{}", target.into(), message.into()))
 }
 
 /// Constructs a message containing a MYINFO numeric with the specified contents.
-pub fn serverinfo<T: Into<String>>(target: T, message: T) -> Result<Message> {
+pub fn server_info<T: Into<String>, M: Into<String>>(target: T, message: M) -> Result<Message> {
     Message::try_from(format!("004 {} :{}", target.into(), message.into()))
 }
