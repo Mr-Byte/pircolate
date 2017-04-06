@@ -92,6 +92,43 @@ impl<'a> Command<'a> for Privmsg<'a> {
     }
 }
 
+// Simple numerics are the numerics which have nothing but a single associated message. For
+// these, we avail ourselves of a macro to define a suitable command implementation.
+macro_rules! simple_numeric {
+    // Hackyness to allow doc-comments; it looks kinda icky, but it works!
+    ($(#[$meta:meta])* ($num:expr, $numeric_name:ident)) => (
+        $(#[$meta])*
+        pub struct $numeric_name<'a>(pub &'a str);
+
+        impl<'a> Command<'a> for $numeric_name<'a> {
+            fn name() -> &'static str {
+                $num
+            }
+
+            fn parse(arguments: ArgumentIter<'a>) -> Option<$numeric_name<'a>> {
+                arguments.skip(1).next().map(|x| $numeric_name(x))
+            }
+        }
+    )
+}
+
+simple_numeric!{
+  /// Represents a WELCOME numeric. The welcome message is the only element.
+  ("001", Welcome)
+}
+simple_numeric!{
+  /// Represents a YOURHOST numeric. The yourhost message is the only element.
+  ("002", YourHost)
+}
+simple_numeric!{
+  /// Represents a CREATED numeric. The created message is the only element.
+  ("003", Created)
+}
+simple_numeric!{
+  /// Represents a MYINFO numeric. The server info message is the only element.
+  ("004", ServerInfo)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,5 +157,13 @@ mod tests {
 
         assert_eq!("#channel", target);
         assert_eq!("This is a message!", message);
+    }
+
+    #[test]
+    fn test_welcome_numerc() {
+        let msg = welcome("robots", "our overlords").unwrap();
+        let Welcome(body) = msg.command::<Welcome>().unwrap();
+
+        assert_eq!("our overlords", body);
     }
 }

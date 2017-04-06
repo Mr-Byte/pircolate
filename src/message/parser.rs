@@ -332,11 +332,20 @@ mod tests {
     }
 
     #[test]
-    fn parse_command_with_preefix_and_host() {
+    fn parse_command_with_prefix_and_host() {
         let result = parse_message(":foo@host.test.com TEST").unwrap();
 
         let prefix = result.prefix();
 
         assert_eq!(Some(("foo", None, Some("host.test.com"))), prefix);
+    }
+
+    #[test]
+    fn parse_numeric_welcome() {
+        let result = parse_message("001 fjtest :Welcome to the Meme Loving IRC Network same@me.irl").unwrap();
+
+        assert_eq!("001", result.raw_command());
+        assert_eq!(vec!["fjtest", "Welcome to the Meme Loving IRC Network same@me.irl"], 
+                   result.raw_args().collect::<Vec<&str>>());
     }
 }

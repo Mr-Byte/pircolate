@@ -12,7 +12,7 @@ use tag::{Tag, TagIter};
 
 use std::ops::Range;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 struct PrefixRange {
     raw_prefix: Range<usize>,
     prefix: Range<usize>,
@@ -24,7 +24,7 @@ type TagRange = (Range<usize>, Option<Range<usize>>);
 
 /// Representation of IRC messages that splits a message into its constituent
 /// parts specified in RFC1459 and the IRCv3 spec.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Message {
     message: String,
     tags: Option<Vec<TagRange>>,
@@ -143,4 +143,24 @@ pub fn join<C: Into<String>>(channel: C) -> Result<Message> {
 /// Constructs a message containing a PRIVMSG command sent to the specified targets with the given message.
 pub fn privmsg<T: Into<String>, M: Into<String>>(targets: T, message: M) -> Result<Message> {
     Message::try_from(format!("PRIVMSG {} :{}", targets.into(), message.into()))
+}
+
+/// Constructs a message containing a WELCOME numeric with the specified contents.
+pub fn welcome<T: Into<String>>(target: T, message: T) -> Result<Message> {
+    Message::try_from(format!("001 {} :{}", target.into(), message.into()))
+}
+
+/// Constructs a message containing a YOURHOST numeric with the specified contents.
+pub fn yourhost<T: Into<String>>(target: T, message: T) -> Result<Message> {
+    Message::try_from(format!("002 {} :{}", target.into(), message.into()))
+}
+
+/// Constructs a message containing a CREATED numeric with the specified contents.
+pub fn created<T: Into<String>>(target: T, message: T) -> Result<Message> {
+    Message::try_from(format!("003 {} :{}", target.into(), message.into()))
+}
+
+/// Constructs a message containing a MYINFO numeric with the specified contents.
+pub fn serverinfo<T: Into<String>>(target: T, message: T) -> Result<Message> {
+    Message::try_from(format!("004 {} :{}", target.into(), message.into()))
 }
