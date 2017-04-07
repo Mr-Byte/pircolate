@@ -17,8 +17,54 @@ impl<'a> ArgumentIter<'a> {
     pub fn new(source: &'a str, iter: Iter<'a, Range<usize>>) -> ArgumentIter<'a> {
         ArgumentIter {
             source: source,
-            iter: iter
+            iter: iter,
         }
+    }
+
+    // A helper function that helps map a single argument to another type. If there are no arguments, it returns None.
+    #[inline]
+    pub fn take_map1<B, F>(mut self, mut f: F) -> Option<B>
+        where F: FnMut(&'a str) -> B
+    {
+        self.next().map(|first| f(first))
+    }
+
+    // A helper function that helps map the first two arguments to another type. If there are not enough arguments, it returns None.
+    #[inline]
+    pub fn take_map2<B, F>(mut self, mut f: F) -> Option<B>
+        where F: FnMut(&'a str, &'a str) -> B
+    {
+        self.next()
+            .and_then(|first| self.next().map(|second| f(first, second)))
+    }
+
+    // A helper function that helps map the first three arguments to another type. If there are not enough arguments, it returns None.
+    #[inline]
+    pub fn take_map3<B, F>(mut self, mut f: F) -> Option<B>
+        where F: FnMut(&'a str, &'a str, &'a str) -> B
+    {
+        self.next()
+            .and_then(|first| {
+                self.next()
+                    .and_then(|second| self.next().map(|third| f(first, second, third)))
+            })
+    }
+
+    // A helper function that helps map the first four arguments to another type. If there are not enough arguments, it returns None.
+    #[inline]
+    pub fn take_map4<B, F>(mut self, mut f: F) -> Option<B>
+        where F: FnMut(&'a str, &'a str, &'a str, &'a str) -> B
+    {
+        self.next()
+            .and_then(|first| {
+                self.next()
+                    .and_then(|second| {
+                        self.next()
+                            .and_then(|third| {
+                                self.next().map(|fourth| f(first, second, third, fourth))
+                            })
+                    })
+            })
     }
 }
 
@@ -43,7 +89,9 @@ pub trait Command<'a> {
     /// A default implementation that takes in the given command name and arguments and attempts to match
     /// the command and parse the arguments into a strongly typed representation. If there is no match
     /// or the parse fails, it returns `None`.
-    fn try_match(command: &str, arguments: ArgumentIter<'a>) -> Option<Self> where Self: Sized {
+    fn try_match(command: &str, arguments: ArgumentIter<'a>) -> Option<Self>
+        where Self: Sized
+    {
         if command == Self::name() {
             Self::parse(arguments)
         } else {
@@ -60,8 +108,8 @@ impl<'a> Command<'a> for Ping<'a> {
         "PING"
     }
 
-    fn parse(mut arguments: ArgumentIter<'a>) -> Option<Ping<'a>> {
-        arguments.next().map(|suffix| Ping(suffix))
+    fn parse(arguments: ArgumentIter<'a>) -> Option<Ping<'a>> {
+        arguments.take_map1(|suffix| Ping(suffix))
     }
 }
 
@@ -73,8 +121,8 @@ impl<'a> Command<'a> for Pong<'a> {
         "PONG"
     }
 
-    fn parse(mut arguments: ArgumentIter<'a>) -> Option<Pong<'a>> {
-        arguments.next().map(|suffix| Pong(suffix))
+    fn parse(arguments: ArgumentIter<'a>) -> Option<Pong<'a>> {
+        arguments.take_map1(|suffix| Pong(suffix))
     }
 }
 
@@ -87,8 +135,8 @@ impl<'a> Command<'a> for Privmsg<'a> {
         "PRIVMSG"
     }
 
-    fn parse(mut arguments: ArgumentIter<'a>) -> Option<Privmsg<'a>> {
-        arguments.next().and_then(|target| arguments.next().map(|suffix| Privmsg(target, suffix)))
+    fn parse(arguments: ArgumentIter<'a>) -> Option<Privmsg<'a>> {
+        arguments.take_map2(|target, suffix| Privmsg(target, suffix))
     }
 }
 
@@ -98,7 +146,7 @@ macro_rules! simple_numeric {
     // Hackyness to allow doc-comments; it looks kinda icky, but it works!
     ($(#[$meta:meta])* ($num:expr, $numeric_name:ident)) => (
         $(#[$meta])*
-        pub struct $numeric_name<'a>(pub &'a str);
+        pub struct $numeric_name<'a>(pub &'a str, pub &'a str);
 
         impl<'a> Command<'a> for $numeric_name<'a> {
             fn name() -> &'static str {
@@ -106,26 +154,26 @@ macro_rules! simple_numeric {
             }
 
             fn parse(arguments: ArgumentIter<'a>) -> Option<$numeric_name<'a>> {
-                arguments.skip(1).next().map(|x| $numeric_name(x))
+                arguments.take_map2(|username, message| $numeric_name(username, message))
             }
         }
     )
 }
 
 simple_numeric!{
-  /// Represents a WELCOME numeric. The welcome message is the only element.
+  /// Represents a WELCOME numeric. The first element is the unsername and the second element is the welcome message.
   ("001", Welcome)
 }
 simple_numeric!{
-  /// Represents a YOURHOST numeric. The yourhost message is the only element.
+  /// Represents a YOURHOST numeric. The first element is the unsername and the second element is the yourhost message.
   ("002", YourHost)
 }
 simple_numeric!{
-  /// Represents a CREATED numeric. The created message is the only element.
+  /// Represents a CREATED numeric. The first element is the unsername and the second element is the created message.
   ("003", Created)
 }
 simple_numeric!{
-  /// Represents a MYINFO numeric. The server info message is the only element.
+  /// Represents a MYINFO numeric. The first element is the username and the second element is the server info message.
   ("004", ServerInfo)
 }
 
@@ -160,10 +208,11 @@ mod tests {
     }
 
     #[test]
-    fn test_welcome_numerc() {
+    fn test_welcome_numeric() {
         let msg = welcome("robots", "our overlords").unwrap();
-        let Welcome(body) = msg.command::<Welcome>().unwrap();
+        let Welcome(username, message) = msg.command::<Welcome>().unwrap();
 
-        assert_eq!("our overlords", body);
+        assert_eq!("robots", username);
+        assert_eq!("our overlords", message);
     }
 }

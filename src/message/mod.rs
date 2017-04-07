@@ -106,61 +106,61 @@ impl Message {
 }
 
 /// Constructs a message containing a PING command targeting the specified host.
-pub fn ping<H: Into<String>>(host: H) -> Result<Message> {
-    Message::try_from(format!("PING :{}", host.into()))
+pub fn ping(host: &str) -> Result<Message> {
+    Message::try_from(format!("PING :{}", host))
 }
 
 /// Constructs a message containing a PONG command targeting the specified host.
-pub fn pong<H: Into<String>>(host: H) -> Result<Message> {
-    Message::try_from(format!("PONG {}", host.into()))
+pub fn pong(host: &str) -> Result<Message> {
+    Message::try_from(format!("PONG {}", host))
 }
 
 /// Constructs a message containing a PASS command with the specified password.
-pub fn pass<P: Into<String>>(pass: P) -> Result<Message> {
-    Message::try_from(format!("PASS {}", pass.into()))
+pub fn pass(pass: &str) -> Result<Message> {
+    Message::try_from(format!("PASS {}", pass))
 }
 
 /// Constructs a message containing a NICK command with the specified nickname.
-pub fn nick<N: Into<String>>(nick: N) -> Result<Message> {
-    Message::try_from(format!("NICK {}", nick.into()))
+pub fn nick(nick: &str) -> Result<Message> {
+    Message::try_from(format!("NICK {}", nick))
 }
 
 /// Constructs a message containing a USER command with the specified username and real name.
-pub fn user<U: Into<String>, N: Into<String>>(username: U, real_name: N) -> Result<Message> {
-    Message::try_from(format!("USER {} 0 * :{}", username.into(), real_name.into()))
+pub fn user(username: &str, real_name: &str) -> Result<Message> {
+    Message::try_from(format!("USER {} 0 * :{}", username, real_name))
 }
 
 /// Constructs a message containing an IRCv3 CAP REQ command for the specified capability.
-pub fn cap_req<C: Into<String>>(cap: C) -> Result<Message> {
-    Message::try_from(format!("CAP REQ :{}", cap.into()))
+pub fn cap_req(cap: &str) -> Result<Message> {
+    Message::try_from(format!("CAP REQ :{}", cap))
 }
 
 /// Constructs a message containing a JOIN command for the specified channel.
-pub fn join<C: Into<String>>(channel: C) -> Result<Message> {
-    Message::try_from(format!("JOIN {}", channel.into()))
+pub fn join(channel: &str) -> Result<Message> {
+    Message::try_from(format!("JOIN {}", channel))
 }
 
 /// Constructs a message containing a PRIVMSG command sent to the specified targets with the given message.
-pub fn privmsg<T: Into<String>, M: Into<String>>(targets: T, message: M) -> Result<Message> {
-    Message::try_from(format!("PRIVMSG {} :{}", targets.into(), message.into()))
+pub fn privmsg(targets: &str, message: &str) -> Result<Message> {
+    Message::try_from(format!("PRIVMSG {} :{}", targets, message))
 }
 
 /// Constructs a message containing a WELCOME numeric with the specified contents.
-pub fn welcome<T: Into<String>, M: Into<String>>(target: T, message: M) -> Result<Message> {
-    Message::try_from(format!("001 {} :{}", target.into(), message.into()))
+pub fn welcome(target: &str, message: &str) -> Result<Message> {
+    Message::try_from(format!("001 {} :{}", target, message))
 }
 
 /// Constructs a message containing a YOURHOST numeric with the specified contents.
-pub fn your_host<T: Into<String>, M: Into<String>>(target: T, message: M) -> Result<Message> {
-    Message::try_from(format!("002 {} :{}", target.into(), message.into()))
+pub fn your_host(target: &str, message: &str) -> Result<Message> {
+    Message::try_from(format!("002 {} :{}", target, message))
 }
 
 /// Constructs a message containing a CREATED numeric with the specified contents.
-pub fn created<T: Into<String>, M: Into<String>>(target: T, message: M) -> Result<Message> {
-    Message::try_from(format!("003 {} :{}", target.into(), message.into()))
+pub fn created(target: &str, message: &str) -> Result<Message> {
+    Message::try_from(format!("003 {} :{}", target, message))
 }
 
 /// Constructs a message containing a MYINFO numeric with the specified contents.
-pub fn server_info<T: Into<String>, M: Into<String>>(target: T, message: M) -> Result<Message> {
-    Message::try_from(format!("004 {} :{}", target.into(), message.into()))
+pub fn server_info(target: &str, message: &str) -> Result<Message> {
+    Message::try_from(format!("004 {} :{}", target, message))
 }
