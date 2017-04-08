@@ -141,7 +141,7 @@ pub fn join(channel: &str) -> Result<Message> {
 }
 
 /// Constructs a message containing a PRIVMSG command sent to the specified targets with the given message.
-pub fn privmsg(targets: &str, message: &str) -> Result<Message> {
+pub fn priv_msg(targets: &str, message: &str) -> Result<Message> {
     Message::try_from(format!("PRIVMSG {} :{}", targets, message))
 }
 
