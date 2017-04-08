@@ -20,52 +20,6 @@ impl<'a> ArgumentIter<'a> {
             iter: iter,
         }
     }
-
-    // A helper function that helps map a single argument to another type. If there are no arguments, it returns None.
-    #[inline]
-    pub fn take_map1<B, F>(mut self, mut f: F) -> Option<B>
-        where F: FnMut(&'a str) -> B
-    {
-        self.next().map(|first| f(first))
-    }
-
-    // A helper function that helps map the first two arguments to another type. If there are not enough arguments, it returns None.
-    #[inline]
-    pub fn take_map2<B, F>(mut self, mut f: F) -> Option<B>
-        where F: FnMut(&'a str, &'a str) -> B
-    {
-        self.next()
-            .and_then(|first| self.next().map(|second| f(first, second)))
-    }
-
-    // A helper function that helps map the first three arguments to another type. If there are not enough arguments, it returns None.
-    #[inline]
-    pub fn take_map3<B, F>(mut self, mut f: F) -> Option<B>
-        where F: FnMut(&'a str, &'a str, &'a str) -> B
-    {
-        self.next()
-            .and_then(|first| {
-                self.next()
-                    .and_then(|second| self.next().map(|third| f(first, second, third)))
-            })
-    }
-
-    // A helper function that helps map the first four arguments to another type. If there are not enough arguments, it returns None.
-    #[inline]
-    pub fn take_map4<B, F>(mut self, mut f: F) -> Option<B>
-        where F: FnMut(&'a str, &'a str, &'a str, &'a str) -> B
-    {
-        self.next()
-            .and_then(|first| {
-                self.next()
-                    .and_then(|second| {
-                        self.next()
-                            .and_then(|third| {
-                                self.next().map(|fourth| f(first, second, third, fourth))
-                            })
-                    })
-            })
-    }
 }
 
 impl<'a> Iterator for ArgumentIter<'a> {
@@ -109,15 +63,25 @@ pub trait Command<'a> {
 ///
 /// ```
 /// # #[macro_use] extern crate pircolate;
+/// #
+/// # use pircolate::message;
+/// # use pircolate::command::Ping;
+/// #
 /// command! {
 ///   /// Some command!
-///   ("TEST" => Test(2)) 
+///   ("TEST" => Test(user, message))
 /// }
-/// # fn main() {}
+/// #
+/// # fn main() {
+/// #   let msg = message::Message::try_from("TEST bob :hello, world!".to_owned()).unwrap();
+/// if let Some(Test(user, message)) = msg.command::<Test>() {
+///     println!("<{}> {}", user, message);
+/// }
+/// # }
 /// ```
 #[macro_export]
 macro_rules! command {
-    ($(#[$meta:meta])* ($command:expr => $command_name:ident(0))) => {
+    ($(#[$meta:meta])* ($command:expr => $command_name:ident())) => {
         $(#[$meta])*
         pub struct $command_name;
 
@@ -132,65 +96,34 @@ macro_rules! command {
         }
     };
 
-    ($(#[$meta:meta])* ($command:expr => $command_name:ident(1))) => {
+    ($(#[$meta:meta])* ($command:expr => $command_name:ident($($name:ident),+))) => {
         $(#[$meta])*
-        pub struct $command_name<'a>(pub &'a str);
+
+        pub struct $command_name<'a>($(pub expand_param!($name)),+);
 
         impl<'a> $crate::command::Command<'a> for $command_name<'a> {
             fn name() -> &'static str {
                 $command
             }
 
-            fn parse(arguments: $crate::command::ArgumentIter<'a>) -> Option<$command_name<'a>> {
-                arguments.take_map1(|first| $command_name(first))
+            fn parse(mut arguments: $crate::command::ArgumentIter<'a>) -> Option<$command_name> {
+                $(
+                    let $name = match arguments.next() {
+                        Some(value) => value,
+                        None => return None
+                    };
+                )+
+
+                Some($command_name($($name),*))
             }
         }
     };
+}
 
-    ($(#[$meta:meta])* ($command:expr => $command_name:ident(2))) => {
-        $(#[$meta])*
-        pub struct $command_name<'a>(pub &'a str, pub &'a str);
-
-        impl<'a> $crate::command::Command<'a> for $command_name<'a> {
-            fn name() -> &'static str {
-                $command
-            }
-
-            fn parse(arguments: $crate::command::ArgumentIter<'a>) -> Option<$command_name<'a>> {
-                arguments.take_map2(|first, second| $command_name(first, second))
-            }
-        }
-    };
-
-    ($(#[$meta:meta])* ($command:expr => $command_name:ident(3))) => {
-        $(#[$meta])*
-        pub struct $command_name<'a>(pub &'a str, pub &'a str, pub &'a str);
-
-        impl<'a> $crate::command::Command<'a> for $command_name<'a> {
-            fn name() -> &'static str {
-                $command
-            }
-
-            fn parse(arguments: $crate::command::ArgumentIter<'a>) -> Option<$command_name<'a>> {
-                arguments.take_map3(|first, second, third| $command_name(first, second, third))
-            }
-        }
-    };
-
-    ($(#[$meta:meta])* ($command:expr => $command_name:ident(4))) => {
-        $(#[$meta])*
-        pub struct $command_name<'a>(pub &'a str, pub &'a str, pub &'a str);
-
-        impl<'a> $crate::command::Command<'a> for $command_name<'a> {
-            fn name() -> &'static str {
-                $command
-            }
-
-            fn parse(arguments: $crate::command::ArgumentIter<'a>) -> Option<$command_name<'a>> {
-                arguments.take_map4(|first, second, third, fourth| $command_name(first, second, third, fourth))
-            }
-        }
-    };
+#[doc(hidden)]
+#[macro_export]
+macro_rules! expand_param {
+    ($i:ident) =>  { &'a str };
 }
 
 command! { 
@@ -205,12 +138,12 @@ command! {
     /// #
     /// # fn main() {
     /// # let msg = message::ping("test.host.com").unwrap();
-    ///     if let Some(Ping(host)) = msg.command::<Ping>() {
-    ///         println!("PING from {}.", host);
-    ///     }
+    /// if let Some(Ping(host)) = msg.command::<Ping>() {
+    ///     println!("PING from {}", host);
+    /// }
     /// # }
     /// ```
-    ("PING" => Ping(1)) 
+    ("PING" => Ping(host)) 
 }
 
 command! {
@@ -225,12 +158,12 @@ command! {
     /// #
     /// # fn main() {
     /// # let msg = message::pong("test.host.com").unwrap();
-    ///     if let Some(Pong(host)) = msg.command::<Pong>() {
-    ///         println!("PONG from {}.", host);
-    ///     }
+    /// if let Some(Pong(host)) = msg.command::<Pong>() {
+    ///    println!("PONG from {}.", host);
+    /// }
     /// # }
     /// ```
-    ("PONG" => Pong(1))
+    ("PONG" => Pong(host))
 }
 
 command! {
@@ -246,32 +179,32 @@ command! {
     /// #
     /// # fn main() {
     /// # let msg = message::priv_msg("memelord", "memes are great").unwrap();
-    ///     if let Some(PrivMsg(user, message)) = msg.command::<PrivMsg>() {
-    ///         println!("<{}> {}.", user, message);
-    ///     }
+    /// if let Some(PrivMsg(user, message)) = msg.command::<PrivMsg>() {
+    ///     println!("<{}> {}.", user, message);
+    /// }
     /// # }
     /// ```
-    ("PRIVMSG" => PrivMsg(2))
+    ("PRIVMSG" => PrivMsg(target, message))
 }
 
 command! { 
     /// Represents a WELCOME numeric. The first element is the unsername and the second element is the welcome message.
-    ("001" => Welcome(2))
+    ("001" => Welcome(user, message))
 }
 
 command! {
     /// Represents a YOURHOST numeric. The first element is the unsername and the second element is the yourhost message.
-    ("002" => YourHost(2))
+    ("002" => YourHost(user, message))
 }
 
 command!{
   /// Represents a CREATED numeric. The first element is the unsername and the second element is the created message.
-  ("003" => Created(2))
+  ("003" => Created(user, message))
 }
 
 command!{
   /// Represents a MYINFO numeric. The first element is the username and the second element is the server info message.
-  ("004" => ServerInfo(2))
+  ("004" => ServerInfo(user, message))
 }
 
 #[cfg(test)]
