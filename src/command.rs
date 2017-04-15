@@ -221,6 +221,7 @@ command!{
   ("004" => ServerInfo(user, message))
 }
 
+#[derive(PartialEq, Debug)]
 pub enum NamesReplyChannelType {
     Secret,
     Private,
@@ -354,5 +355,17 @@ mod tests {
 
         assert_eq!("robots", username);
         assert_eq!("our overlords", message);
+    }
+
+    #[test]
+    fn test_names_reply_command() {
+        let msg: Message = "353 = #test :robot1 robot2 robot3".parse().unwrap();
+        let NamesReply(channel_type, channel, users) = msg.command::<NamesReply>().unwrap();
+
+        let expected_users = vec! [ "robot1", "robot2", "robot3" ];
+
+        assert_eq!(NamesReplyChannelType::Other, channel_type);
+        assert_eq!("#test", channel);
+        assert_eq!(expected_users, users);
     }
 }
