@@ -14,16 +14,20 @@ pub fn parse_message<M: Into<String>>(message: M) -> error::Result<Message> {
 
         let tags_end = position;
 
-        if tags_end >= 512 {
-            return Err(error::ErrorKind::InputTooLong("The tags length exceeded 512 bytes.".to_owned()).into());
-        }        
+        if tags_end > 512 {
+            return Err(error::ErrorKind::InputTooLong("The tags length exceeded 512 bytes."
+                    .to_owned())
+                .into());
+        }
 
         let (prefix, position) = parse_prefix(input, position)?;
         let (command, position) = parse_command(input, position)?;
         let (args, position) = parse_args(input, position)?;
 
-        if (position - tags_end) >= 512 {
-            return Err(error::ErrorKind::InputTooLong("The message length exceeded 512 bytes.".to_owned()).into());
+        if (position - tags_end) > 510 {
+            return Err(error::ErrorKind::InputTooLong("The message length exceeded 512 bytes."
+                    .to_owned())
+                .into());
         }
 
         (tags, prefix, command, args)
@@ -69,7 +73,7 @@ fn parse_tags(input: &[u8]) -> ParseResult<Option<Vec<TagRange>>> {
             }
 
             let key_range = key_start..position;
-            if input[position] == b'=' {             
+            if input[position] == b'=' {
                 position = move_next(position, len)?;
             }
 
@@ -78,7 +82,11 @@ fn parse_tags(input: &[u8]) -> ParseResult<Option<Vec<TagRange>>> {
                 position = move_next(position, len)?;
             }
 
-            let value_range = if value_start == position { None } else { Some(value_start..position) };
+            let value_range = if value_start == position {
+                None
+            } else {
+                Some(value_start..position)
+            };
 
             tags.push((key_range, value_range));
 
@@ -135,13 +143,13 @@ fn parse_prefix(input: &[u8], mut position: usize) -> ParseResult<Option<PrefixR
             }
 
             host_range = Some(host_start..position);
-        }        
+        }
 
         let prefix_range = PrefixRange {
             raw_prefix: prefix_start..position,
             prefix: prefix_range,
             user: user_range,
-            host: host_range
+            host: host_range,
         };
 
         position = move_next(position, len)?;
@@ -279,15 +287,13 @@ mod tests {
     fn parse_command_with_multiple_tags() {
         let result = parse_message("@a=1;b=2;d=;f;a\\b=3;c= TEST").unwrap();
 
-        let expected_tags = vec![
-            ("a", Some("1")),
-            ("b", Some("2")),
-            ("d", None),
-            ("f", None),
-            ("a\\b", Some("3")),
-            ("c", None)
-        ];
-        
+        let expected_tags = vec![("a", Some("1")),
+                                 ("b", Some("2")),
+                                 ("d", None),
+                                 ("f", None),
+                                 ("a\\b", Some("3")),
+                                 ("c", None)];
+
         let actual_tags: Vec<_> = result.raw_tags().collect();
 
         assert_eq!("TEST", result.raw_command());
@@ -302,6 +308,38 @@ mod tests {
         let actual_args: Vec<_> = result.raw_args().collect();
 
         assert_eq!(expected_args, actual_args);
+    }
+
+    #[test]
+    fn parse_command_with_512_byte_long_tags() {
+        let message = "@a=1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 TEST";
+        let result = parse_message(message).unwrap();
+
+        let (key, value) = result.raw_tags().next().unwrap();
+
+        assert_eq!("a", key);
+        assert_eq!(508, value.unwrap().len());
+        assert_eq!("TEST", result.raw_command());
+    }
+
+    #[test]
+    fn parse_command_with_510_byte_long_command() {
+        let message = "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
+        let result = parse_message(message).unwrap();
+
+        assert_eq!(510, result.raw_command().len());
+    }
+
+    #[test]
+    fn parse_command_with_512_byte_long_tags_and_510_byte_long_command() {
+        let message = "@a=1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
+        let result = parse_message(message).unwrap();
+
+        let (key, value) = result.raw_tags().next().unwrap();
+
+        assert_eq!("a", key);
+        assert_eq!(508, value.unwrap().len());
+        assert_eq!(510, result.raw_command().len());
     }
 
     #[test]
@@ -328,7 +366,8 @@ mod tests {
 
         let prefix = result.prefix();
 
-        assert_eq!(Some(("foo", Some("foobert"), Some("host.test.com"))), prefix);
+        assert_eq!(Some(("foo", Some("foobert"), Some("host.test.com"))),
+                   prefix);
     }
 
     #[test]
@@ -342,10 +381,12 @@ mod tests {
 
     #[test]
     fn parse_numeric_welcome() {
-        let result = parse_message("001 fjtest :Welcome to the Meme Loving IRC Network same@me.irl").unwrap();
+        let result = parse_message("001 fjtest :Welcome to the Meme Loving IRC Network \
+                                    same@me.irl")
+            .unwrap();
 
         assert_eq!("001", result.raw_command());
-        assert_eq!(vec!["fjtest", "Welcome to the Meme Loving IRC Network same@me.irl"], 
+        assert_eq!(vec!["fjtest", "Welcome to the Meme Loving IRC Network same@me.irl"],
                    result.raw_args().collect::<Vec<&str>>());
     }
 }
