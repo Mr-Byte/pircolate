@@ -16,8 +16,8 @@ use std::ops::Range;
 struct PrefixRange {
     raw_prefix: Range<usize>,
     prefix: Range<usize>,
-    user: Option<Range<usize>>, 
-    host: Option<Range<usize>>
+    user: Option<Range<usize>>,
+    host: Option<Range<usize>>,
 }
 
 type TagRange = (Range<usize>, Option<Range<usize>>);
@@ -43,13 +43,17 @@ impl Message {
 
     /// A strongly typed interface for determining the type of the command
     /// and retrieving the values of the command.
-    pub fn command<'a, T>(&'a self) -> Option<T> where T : Command<'a> {
+    pub fn command<'a, T>(&'a self) -> Option<T>
+        where T: Command<'a>
+    {
         <T as Command>::try_match(self.raw_command(), self.raw_args())
     }
 
     /// A strongly type way of accessing a specified tag associated with
     /// a message.
-    pub fn tag<'a, T>(&'a self) -> Option<T> where T : Tag<'a> {
+    pub fn tag<'a, T>(&'a self) -> Option<T>
+        where T: Tag<'a>
+    {
         <T as Tag>::try_match(self.raw_tags())
     }
 
@@ -105,6 +109,14 @@ impl Message {
     }
 }
 
+impl ::std::str::FromStr for Message {
+    type Err = ::error::Error;
+
+    fn from_str(input: &str) -> Result<Message> {
+        Message::try_from(input.to_owned())
+    }
+}
+
 /// Constructs a message containing a PING command targeting the specified host.
 pub fn ping(host: &str) -> Result<Message> {
     Message::try_from(format!("PING :{}", host))
@@ -136,8 +148,16 @@ pub fn cap_req(cap: &str) -> Result<Message> {
 }
 
 /// Constructs a message containing a JOIN command for the specified channel.
-pub fn join(channel: &str) -> Result<Message> {
-    Message::try_from(format!("JOIN {}", channel))
+/// The `channels` parameter is a comma separated list of channels to join.
+/// The `keys` parameter is an optional comma separated list of passwords for the channels being joined.
+pub fn join(channels: &str, keys: Option<&str>) -> Result<Message> {
+    let command = if let Some(keys) = keys {
+        format!("JOIN {} {}", channels, keys)
+    } else {
+        format!("JOIN {}", channels)
+    };
+
+    Message::try_from(command)
 }
 
 /// Constructs a message containing a PRIVMSG command sent to the specified targets with the given message.

@@ -30,6 +30,12 @@ impl<'a> Iterator for ArgumentIter<'a> {
     }
 }
 
+impl<'a> DoubleEndedIterator for ArgumentIter<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.iter.next_back().map(|range| &self.source[range.clone()])
+    }
+}
+
 /// The `Command` trait is a trait that's implemented by types wishing to provide command
 /// parsing capability for usage with the `Message::command` method.
 pub trait Command<'a> {
@@ -187,6 +193,14 @@ command! {
     ("PRIVMSG" => PrivMsg(target, message))
 }
 
+command! {
+    ("JOIN" => Join(channel))
+}
+
+command! {
+    ("JOIN" => Part(channel))
+}
+
 command! { 
     /// Represents a WELCOME numeric. The first element is the unsername and the second element is the welcome message.
     ("001" => Welcome(user, message))
@@ -205,6 +219,75 @@ command!{
 command!{
   /// Represents a MYINFO numeric. The first element is the username and the second element is the server info message.
   ("004" => ServerInfo(user, message))
+}
+
+pub enum NamesReplyChannelType {
+    Secret,
+    Private,
+    Other,
+}
+
+pub struct NamesReply<'a>(pub NamesReplyChannelType, pub &'a str, pub Vec<&'a str>);
+
+impl<'a> Command<'a> for NamesReply<'a> {
+    fn name() -> &'static str {
+        "353"
+    }
+
+    fn parse(arguments: ArgumentIter<'a>) -> Option<NamesReply<'a>> {
+        // NOTE: Since the first parameter is optional, it's just easier to extract
+        // components in reverse.
+        let mut arguments = arguments.rev();
+
+        let names = match arguments.next() {
+            Some(names) => names.split_whitespace(),
+            None => return None,
+        };
+
+        let channel = match arguments.next() {
+            Some(channel) => channel,
+            None => return None,
+        };
+
+        let channel_type = match arguments.next() {
+            Some(channel_type) => {
+                match channel_type {
+                    "@" => NamesReplyChannelType::Secret,
+                    "*" => NamesReplyChannelType::Private,
+                    _ => NamesReplyChannelType::Other,
+                }
+            }
+            None => NamesReplyChannelType::Other,
+        };
+
+        Some(NamesReply(channel_type, channel, names.collect()))
+    }
+}
+
+pub struct EndNamesReply<'a>(pub &'a str, pub &'a str);
+
+impl<'a> Command<'a> for EndNamesReply<'a> {
+    fn name() -> &'static str {
+        "366"
+    }
+
+    fn parse(arguments: ArgumentIter<'a>) -> Option<EndNamesReply<'a>> {
+        // NOTE: Some servers are bad and include non-standard args at the start.
+        // So the parameters are extracted in reverse to compensate.
+        let mut arguments = arguments.rev();
+
+        let message = match arguments.next() {
+            Some(message) => message,
+            None => return None,
+        };
+
+        let channel = match arguments.next() {
+            Some(channel) => channel,
+            None => return None,
+        };
+
+        Some(EndNamesReply(channel, message))
+    }
 }
 
 #[cfg(test)]

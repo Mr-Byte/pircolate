@@ -4,7 +4,7 @@
 use std::ops::Range;
 use std::slice::Iter;
 
-/// An implementation of Iterator that iterates over the key/value pairs 
+/// An implementation of Iterator that iterates over the key/value pairs
 /// (in the form of a tuple) of the tags of a `Message`.
 #[derive(Clone)]
 pub struct TagIter<'a> {
@@ -15,10 +15,12 @@ pub struct TagIter<'a> {
 impl<'a> TagIter<'a> {
     // This is intended for internal usage and thus hidden.
     #[doc(hidden)]
-    pub fn new(source: &'a str, iter: Iter<'a, (Range<usize>, Option<Range<usize>>)>) -> TagIter<'a> {
+    pub fn new(source: &'a str,
+               iter: Iter<'a, (Range<usize>, Option<Range<usize>>)>)
+               -> TagIter<'a> {
         TagIter {
             source: source,
-            iter: iter
+            iter: iter,
         }
     }
 }
@@ -33,10 +35,17 @@ impl<'a> Iterator for TagIter<'a> {
     }
 }
 
+impl<'a> DoubleEndedIterator for TagIter<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.iter.next_back().map(|&(ref key, ref value)| {
+            (&self.source[key.clone()], value.clone().map(|value| &self.source[value]))
+        })
+    }
+}
+
 /// The tag trait is a trait implemented by types for use with the `Message::tag` method.
 /// It is used to search for a specified tag and provide stronglyy typed access to it.
 pub trait Tag<'a> {
-
     /// The name of the tag being searched for.
     fn name() -> &'static str;
 
@@ -46,7 +55,9 @@ pub trait Tag<'a> {
 
     /// A default implementation that searches for a tag with the associated name and
     /// attempts to parse it.
-    fn try_match(mut tags: TagIter<'a>) -> Option<Self> where Self: Sized {
+    fn try_match(mut tags: TagIter<'a>) -> Option<Self>
+        where Self: Sized
+    {
         tags.find(|&(key, _)| key == Self::name())
             .and_then(|(_, value)| Self::parse(value))
     }
