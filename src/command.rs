@@ -143,7 +143,7 @@ command! {
     /// # use pircolate::command::Ping;
     /// #
     /// # fn main() {
-    /// # let msg = message::ping("test.host.com").unwrap();
+    /// # let msg = message::server::ping("test.host.com").unwrap();
     /// if let Some(Ping(host)) = msg.command::<Ping>() {
     ///     println!("PING from {}", host);
     /// }
@@ -163,7 +163,7 @@ command! {
     /// # use pircolate::command::Pong;
     /// #
     /// # fn main() {
-    /// # let msg = message::pong("test.host.com").unwrap();
+    /// # let msg = message::client::pong("test.host.com").unwrap();
     /// if let Some(Pong(host)) = msg.command::<Pong>() {
     ///    println!("PONG from {}.", host);
     /// }
@@ -184,7 +184,7 @@ command! {
     /// # use pircolate::command::PrivMsg;
     /// #
     /// # fn main() {
-    /// # let msg = message::priv_msg("memelord", "memes are great").unwrap();
+    /// # let msg = message::client::priv_msg("memelord", "memes are great").unwrap();
     /// if let Some(PrivMsg(user, message)) = msg.command::<PrivMsg>() {
     ///     println!("<{}> {}.", user, message);
     /// }
@@ -212,13 +212,13 @@ command! {
 }
 
 command!{
-  /// Represents a CREATED numeric. The first element is the unsername and the second element is the created message.
-  ("003" => Created(user, message))
+    /// Represents a CREATED numeric. The first element is the unsername and the second element is the created message.
+    ("003" => Created(user, message))
 }
 
 command!{
-  /// Represents a MYINFO numeric. The first element is the username and the second element is the server info message.
-  ("004" => ServerInfo(user, message))
+    /// Represents a MYINFO numeric. The first element is the username and the second element is the server info message.
+    ("004" => ServerInfo(user, message))
 }
 
 #[derive(PartialEq, Debug)]
@@ -298,7 +298,7 @@ mod tests {
 
     #[test]
     fn test_ping_command() {
-        let message = ping("test.host.com").unwrap();
+        let message = server::ping("test.host.com").unwrap();
         let Ping(host) = message.command::<Ping>().unwrap();
 
         assert_eq!("test.host.com", host);
@@ -306,7 +306,7 @@ mod tests {
 
     #[test]
     fn test_pong_command() {
-        let message = pong("test.host.com").unwrap();
+        let message = client::pong("test.host.com").unwrap();
         let Pong(host) = message.command::<Pong>().unwrap();
 
         assert_eq!("test.host.com", host);
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn test_privmsg_command() {
-        let message = priv_msg("#channel", "This is a message!").unwrap();
+        let message = client::priv_msg("#channel", "This is a message!").unwrap();
         let PrivMsg(target, message) = message.command::<PrivMsg>().unwrap();
 
         assert_eq!("#channel", target);
@@ -323,7 +323,7 @@ mod tests {
 
     #[test]
     fn test_welcome_command() {
-        let msg = welcome("robots", "our overlords").unwrap();
+        let msg = server::welcome("robots", "our overlords").unwrap();
         let Welcome(username, message) = msg.command::<Welcome>().unwrap();
 
         assert_eq!("robots", username);
@@ -332,7 +332,7 @@ mod tests {
 
     #[test]
     fn test_your_host_command() {
-        let msg = your_host("robots", "our overlords").unwrap();
+        let msg = server::your_host("robots", "our overlords").unwrap();
         let YourHost(username, message) = msg.command::<YourHost>().unwrap();
 
         assert_eq!("robots", username);
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn test_created_command() {
-        let msg = created("robots", "our overlords").unwrap();
+        let msg = server::created("robots", "our overlords").unwrap();
         let Created(username, message) = msg.command::<Created>().unwrap();
 
         assert_eq!("robots", username);
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_server_info_command() {
-        let msg = server_info("robots", "our overlords").unwrap();
+        let msg = server::server_info("robots", "our overlords").unwrap();
         let ServerInfo(username, message) = msg.command::<ServerInfo>().unwrap();
 
         assert_eq!("robots", username);
