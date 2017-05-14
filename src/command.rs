@@ -193,13 +193,13 @@ command! {
     ("PRIVMSG" => PrivMsg(target, message))
 }
 
-command! {
-    ("JOIN" => Join(channel))
-}
+// command! {
+//     ("JOIN" => Join(channel))
+// }
 
-command! {
-    ("JOIN" => Part(channel))
-}
+// command! {
+//     ("PART" => Part(channel))
+// }
 
 command! { 
     /// Represents a WELCOME numeric. The first element is the unsername and the second element is the welcome message.
@@ -362,7 +362,7 @@ mod tests {
         let msg: Message = "353 = #test :robot1 robot2 robot3".parse().unwrap();
         let NamesReply(channel_type, channel, users) = msg.command::<NamesReply>().unwrap();
 
-        let expected_users = vec! [ "robot1", "robot2", "robot3" ];
+        let expected_users = vec!["robot1", "robot2", "robot3"];
 
         assert_eq!(NamesReplyChannelType::Other, channel_type);
         assert_eq!("#test", channel);
