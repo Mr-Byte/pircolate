@@ -46,7 +46,8 @@ impl Message {
     /// A strongly typed interface for determining the type of the command
     /// and retrieving the values of the command.
     pub fn command<'a, T>(&'a self) -> Option<T>
-        where T: Command<'a>
+    where
+        T: Command<'a>,
     {
         <T as Command>::try_match(self.raw_command(), self.raw_args())
     }
@@ -54,7 +55,8 @@ impl Message {
     /// A strongly type way of accessing a specified tag associated with
     /// a message.
     pub fn tag<'a, T>(&'a self) -> Option<T>
-        where T: Tag<'a>
+    where
+        T: Tag<'a>,
     {
         <T as Tag>::try_match(self.raw_tags())
     }

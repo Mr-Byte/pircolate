@@ -32,7 +32,9 @@ impl<'a> Iterator for ArgumentIter<'a> {
 
 impl<'a> DoubleEndedIterator for ArgumentIter<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.iter.next_back().map(|range| &self.source[range.clone()])
+        self.iter
+            .next_back()
+            .map(|range| &self.source[range.clone()])
     }
 }
 
@@ -44,13 +46,16 @@ pub trait Command<'a> {
 
     /// This method takes in an iterator of arguments associated with a `Message` and attempts
     /// to parse the arguments into a matched `Command`.  If no match is found, None is returned.
-    fn parse(arguments: ArgumentIter<'a>) -> Option<Self> where Self: Sized;
+    fn parse(arguments: ArgumentIter<'a>) -> Option<Self>
+    where
+        Self: Sized;
 
     /// A default implementation that takes in the given command name and arguments and attempts to match
     /// the command and parse the arguments into a strongly typed representation. If there is no match
     /// or the parse fails, it returns `None`.
     fn try_match(command: &str, arguments: ArgumentIter<'a>) -> Option<Self>
-        where Self: Sized
+    where
+        Self: Sized,
     {
         if command == Self::name() {
             Self::parse(arguments)
@@ -58,6 +63,48 @@ pub trait Command<'a> {
             None
         }
     }
+}
+
+/// A macro for simplifying the process of matching commands.
+///
+/// # Examples
+///
+/// Match all PING commands.
+///
+/// ```
+/// # #[macro_use] extern crate pircolate;
+/// #
+/// # use pircolate::message;
+/// # use pircolate::command::Ping;
+/// #
+/// # fn main() {
+/// #   let msg = message::Message::try_from("TEST bob :hello, world!".to_owned()).unwrap();
+/// command_match! {
+///     msg => {
+///         Ping(source) => println!("{}", source),
+///         _ => ()
+///     }
+/// };
+/// # }
+/// ```
+#[macro_export]
+macro_rules! command_match {
+    (@message=$message:expr => $command:pat => $body:expr) => {{
+        let $command = $message;
+        $body
+    }};
+
+    (@message=$message:expr => $command:pat => $body:expr, $($rest:tt)*) => {
+        match $message.command() {
+            Some($command) => $body,
+            _ => command_match!(@message=$message => $($rest)*)
+        }
+    };
+
+    ($message:expr => { $($rest:tt)* }) => {{
+        let message = $message;
+        command_match!(@message=message => $($rest)*)
+    }};
 }
 
 /// A macro for creating implementations of basic commands with up to four
@@ -367,5 +414,42 @@ mod tests {
         assert_eq!(NamesReplyChannelType::Other, channel_type);
         assert_eq!("#test", channel);
         assert_eq!(expected_users, users);
+    }
+
+    #[test]
+    fn test_command_match_with_single_branchj() {
+        let message = client::priv_msg("#channel", "This is a message!").unwrap();
+
+        command_match! {
+            message => {
+                PrivMsg(target, message) => {
+                    assert_eq!(target, "#channel");
+                    assert_eq!(message, "This is a message!");
+                },
+                _ => {
+                    panic!("Command was not matched.")
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_command_match_with_multiple_branches() {
+        let message = client::priv_msg("#channel", "This is a message!").unwrap();
+
+        command_match! {
+            message => {
+                Ping(_) => panic!("Command was inadvertently matched."),
+                Pong(_) => panic!("Command was inadvertently matched."),
+                Welcome(_, _) => panic!("Command was inadvertently matched."),
+                PrivMsg(target, message) => {
+                    assert_eq!(target, "#channel");
+                    assert_eq!(message, "This is a message!");
+                },
+                _ => {
+                    panic!("Command was not matched.")
+                }
+            }
+        }
     }
 }

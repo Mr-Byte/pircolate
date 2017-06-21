@@ -15,9 +15,10 @@ pub fn parse_message<M: Into<String>>(message: M) -> error::Result<Message> {
         let tags_end = position;
 
         if tags_end > 512 {
-            return Err(error::ErrorKind::InputTooLong("The tags length exceeded 512 bytes."
-                    .to_owned())
-                .into());
+            return Err(
+                error::ErrorKind::InputTooLong("The tags length exceeded 512 bytes.".to_owned())
+                    .into(),
+            );
         }
 
         let (prefix, position) = parse_prefix(input, position)?;
@@ -25,9 +26,10 @@ pub fn parse_message<M: Into<String>>(message: M) -> error::Result<Message> {
         let (args, position) = parse_args(input, position)?;
 
         if (position - tags_end) > 510 {
-            return Err(error::ErrorKind::InputTooLong("The message length exceeded 512 bytes."
-                    .to_owned())
-                .into());
+            return Err(
+                error::ErrorKind::InputTooLong("The message length exceeded 512 bytes.".to_owned())
+                    .into(),
+            );
         }
 
         (tags, prefix, command, args)
@@ -287,12 +289,14 @@ mod tests {
     fn parse_command_with_multiple_tags() {
         let result = parse_message("@a=1;b=2;d=;f;a\\b=3;c= TEST").unwrap();
 
-        let expected_tags = vec![("a", Some("1")),
-                                 ("b", Some("2")),
-                                 ("d", None),
-                                 ("f", None),
-                                 ("a\\b", Some("3")),
-                                 ("c", None)];
+        let expected_tags = vec![
+            ("a", Some("1")),
+            ("b", Some("2")),
+            ("d", None),
+            ("f", None),
+            ("a\\b", Some("3")),
+            ("c", None),
+        ];
 
         let actual_tags: Vec<_> = result.raw_tags().collect();
 
@@ -366,8 +370,10 @@ mod tests {
 
         let prefix = result.prefix();
 
-        assert_eq!(Some(("foo", Some("foobert"), Some("host.test.com"))),
-                   prefix);
+        assert_eq!(
+            Some(("foo", Some("foobert"), Some("host.test.com"))),
+            prefix
+        );
     }
 
     #[test]
@@ -381,12 +387,18 @@ mod tests {
 
     #[test]
     fn parse_numeric_welcome() {
-        let result = parse_message("001 fjtest :Welcome to the Meme Loving IRC Network \
-                                    same@me.irl")
-            .unwrap();
+        let result = parse_message(
+            "001 fjtest :Welcome to the Meme Loving IRC Network \
+             same@me.irl",
+        ).unwrap();
 
         assert_eq!("001", result.raw_command());
-        assert_eq!(vec!["fjtest", "Welcome to the Meme Loving IRC Network same@me.irl"],
-                   result.raw_args().collect::<Vec<&str>>());
+        assert_eq!(
+            vec![
+                "fjtest",
+                "Welcome to the Meme Loving IRC Network same@me.irl",
+            ],
+            result.raw_args().collect::<Vec<&str>>()
+        );
     }
 }

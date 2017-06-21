@@ -43,4 +43,3 @@ pub fn join(channels: &str, keys: Option<&str>) -> Result<Message> {
 pub fn priv_msg(targets: &str, message: &str) -> Result<Message> {
     Message::try_from(format!("PRIVMSG {} :{}", targets, message))
 }
-

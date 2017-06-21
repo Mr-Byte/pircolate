@@ -1,6 +1,6 @@
 [package]
 name = "pircolate"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Joshua R. Rodgers <bytemr@gmail.com>"]
 license = "Apache-2.0/MIT"
 description = "Parser and interface for IRCv3 messages."
