@@ -46,14 +46,14 @@ pub trait Command<'a> {
 
     /// This method takes in an iterator of arguments associated with a `Message` and attempts
     /// to parse the arguments into a matched `Command`.  If no match is found, None is returned.
-    fn parse(arguments: ArgumentIter<'a>) -> Option<Self>
+    fn parse(arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<Self>
     where
         Self: Sized;
 
     /// A default implementation that takes in the given command name and arguments and attempts to match
     /// the command and parse the arguments into a strongly typed representation. If there is no match
     /// or the parse fails, it returns `None`.
-    fn try_match(command: &str, arguments: ArgumentIter<'a>) -> Option<Self>
+    fn try_match(command: &str, arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<Self>
     where
         Self: Sized,
     {
@@ -143,7 +143,7 @@ macro_rules! command {
                 $command
             }
 
-            fn parse(_: $crate::command::ArgumentIter<'a>) -> Option<$command_name> {
+            fn parse(_: impl DoubleEndedIterator<Item = &'a str>) -> Option<$command_name> {
                 Some($command_name)
             }
         }
@@ -152,14 +152,14 @@ macro_rules! command {
     ($(#[$meta:meta])* ($command:expr => $command_name:ident($($name:ident),+))) => {
         $(#[$meta])*
 
-        pub struct $command_name<'a>($(pub expand_param!($name)),+);
+        pub struct $command_name($(pub expand_param!($name)),+);
 
-        impl<'a> $crate::command::Command<'a> for $command_name<'a> {
+        impl<'a> $crate::command::Command<'a> for $command_name {
             fn name() -> &'static str {
                 $command
             }
 
-            fn parse(mut arguments: $crate::command::ArgumentIter<'a>) -> Option<$command_name> {
+            fn parse(mut arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<$command_name> {
                 $(
                     let $name = match arguments.next() {
                         Some(value) => value,
@@ -167,7 +167,7 @@ macro_rules! command {
                     };
                 )+
 
-                Some($command_name($($name),*))
+                Some($command_name($($name.to_owned()),*))
             }
         }
     };
@@ -176,10 +176,12 @@ macro_rules! command {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! expand_param {
-    ($i:ident) =>  { &'a str };
+    ($i:ident) => {
+        String
+    };
 }
 
-command! { 
+command! {
     /// Represents a PING command.  The first element is the host.
     ///
     /// # Examples
@@ -196,7 +198,7 @@ command! {
     /// }
     /// # }
     /// ```
-    ("PING" => Ping(host)) 
+    ("PING" => Ping(host))
 }
 
 command! {
@@ -240,15 +242,15 @@ command! {
     ("PRIVMSG" => PrivMsg(target, message))
 }
 
-// command! {
-//     ("JOIN" => Join(channel))
-// }
+command! {
+    ("JOIN" => Join(channel))
+}
 
 // command! {
 //     ("PART" => Part(channel))
 // }
 
-command! { 
+command! {
     /// Represents a WELCOME numeric. The first element is the unsername and the second element is the welcome message.
     ("001" => Welcome(user, message))
 }
@@ -258,12 +260,12 @@ command! {
     ("002" => YourHost(user, message))
 }
 
-command!{
+command! {
     /// Represents a CREATED numeric. The first element is the unsername and the second element is the created message.
     ("003" => Created(user, message))
 }
 
-command!{
+command! {
     /// Represents a MYINFO numeric. The first element is the username and the second element is the server info message.
     ("004" => ServerInfo(user, message))
 }
@@ -275,14 +277,14 @@ pub enum NamesReplyChannelType {
     Other,
 }
 
-pub struct NamesReply<'a>(pub NamesReplyChannelType, pub &'a str, pub Vec<&'a str>);
+pub struct NamesReply(pub NamesReplyChannelType, pub String, pub Vec<String>);
 
-impl<'a> Command<'a> for NamesReply<'a> {
+impl<'a> Command<'a> for NamesReply {
     fn name() -> &'static str {
         "353"
     }
 
-    fn parse(arguments: ArgumentIter<'a>) -> Option<NamesReply<'a>> {
+    fn parse(arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<NamesReply> {
         // NOTE: Since the first parameter is optional, it's just easier to extract
         // components in reverse.
         let mut arguments = arguments.rev();
@@ -298,28 +300,30 @@ impl<'a> Command<'a> for NamesReply<'a> {
         };
 
         let channel_type = match arguments.next() {
-            Some(channel_type) => {
-                match channel_type {
-                    "@" => NamesReplyChannelType::Secret,
-                    "*" => NamesReplyChannelType::Private,
-                    _ => NamesReplyChannelType::Other,
-                }
-            }
+            Some(channel_type) => match channel_type {
+                "@" => NamesReplyChannelType::Secret,
+                "*" => NamesReplyChannelType::Private,
+                _ => NamesReplyChannelType::Other,
+            },
             None => NamesReplyChannelType::Other,
         };
 
-        Some(NamesReply(channel_type, channel, names.collect()))
+        Some(NamesReply(
+            channel_type,
+            channel.to_owned(),
+            names.map(|name| name.to_owned()).collect(),
+        ))
     }
 }
 
-pub struct EndNamesReply<'a>(pub &'a str, pub &'a str);
+pub struct EndNamesReply(pub String, pub String);
 
-impl<'a> Command<'a> for EndNamesReply<'a> {
+impl<'a> Command<'a> for EndNamesReply {
     fn name() -> &'static str {
         "366"
     }
 
-    fn parse(arguments: ArgumentIter<'a>) -> Option<EndNamesReply<'a>> {
+    fn parse(arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<EndNamesReply> {
         // NOTE: Some servers are bad and include non-standard args at the start.
         // So the parameters are extracted in reverse to compensate.
         let mut arguments = arguments.rev();
@@ -334,14 +338,14 @@ impl<'a> Command<'a> for EndNamesReply<'a> {
             None => return None,
         };
 
-        Some(EndNamesReply(channel, message))
+        Some(EndNamesReply(channel.to_owned(), message.to_owned()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use message::*;
+    use crate::message::*;
 
     #[test]
     fn test_ping_command() {

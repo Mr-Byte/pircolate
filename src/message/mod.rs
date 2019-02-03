@@ -4,15 +4,17 @@
 //! The module also contains several constructor methods for constructing
 //! messages to be sent to the server.
 
+pub mod client;
 mod parser;
 pub mod server;
-pub mod client;
 
-use error::Result;
-use command::{Command, ArgumentIter};
-use tag::{Tag, TagIter};
+use crate::command::{ArgumentIter, Command};
+use crate::error::MessageParseError;
+use crate::tag::{Tag, TagIter};
 
 use std::ops::Range;
+
+type MesssageParseResult = Result<Message, MessageParseError>;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct PrefixRange {
@@ -37,7 +39,7 @@ pub struct Message {
 
 impl Message {
     /// Attempt to construct a new message from the given raw IRC message.
-    pub fn try_from(value: String) -> Result<Message> {
+    pub fn try_from(value: String) -> MesssageParseResult {
         let result = parser::parse_message(value)?;
 
         Ok(result)
@@ -113,10 +115,10 @@ impl Message {
     }
 }
 
-impl ::std::str::FromStr for Message {
-    type Err = ::error::Error;
+impl std::str::FromStr for Message {
+    type Err = MessageParseError;
 
-    fn from_str(input: &str) -> Result<Message> {
+    fn from_str(input: &str) -> MesssageParseResult {
         Message::try_from(input.to_owned())
     }
 }

@@ -1,36 +1,19 @@
-use message::{Message, TagRange, PrefixRange};
-use error;
+use crate::error::{MessageParseError, MessageParseError::UnexpectedEndOfInput};
+use crate::message::{Message, PrefixRange, TagRange};
 
 use std::ops::Range;
 
-type ParseResult<'input, T> = error::Result<(T, usize)>;
+type ParseResult<T> = Result<(T, usize), MessageParseError>;
 
-pub fn parse_message<M: Into<String>>(message: M) -> error::Result<Message> {
+pub fn parse_message<M: Into<String>>(message: M) -> Result<Message, MessageParseError> {
     let message = message.into();
 
     let (tags, prefix, command, args) = {
         let input = message.as_bytes();
         let (tags, position) = parse_tags(input)?;
-
-        let tags_end = position;
-
-        if tags_end > 512 {
-            return Err(
-                error::ErrorKind::InputTooLong("The tags length exceeded 512 bytes.".to_owned())
-                    .into(),
-            );
-        }
-
         let (prefix, position) = parse_prefix(input, position)?;
         let (command, position) = parse_command(input, position)?;
-        let (args, position) = parse_args(input, position)?;
-
-        if (position - tags_end) > 510 {
-            return Err(
-                error::ErrorKind::InputTooLong("The message length exceeded 512 bytes.".to_owned())
-                    .into(),
-            );
-        }
+        let (args, _) = parse_args(input, position)?;
 
         (tags, prefix, command, args)
     };
@@ -44,11 +27,11 @@ pub fn parse_message<M: Into<String>>(message: M) -> error::Result<Message> {
     })
 }
 
-fn move_next(value: usize, bound: usize) -> error::Result<usize> {
+fn move_next(value: usize, bound: usize) -> Result<usize, MessageParseError> {
     let value = value + 1;
 
     if value >= bound {
-        Err(error::ErrorKind::UnexpectedEndOfInput.into())
+        Err(UnexpectedEndOfInput {})
     } else {
         Ok(value)
     }
@@ -56,7 +39,7 @@ fn move_next(value: usize, bound: usize) -> error::Result<usize> {
 
 fn parse_tags(input: &[u8]) -> ParseResult<Option<Vec<TagRange>>> {
     if input.is_empty() {
-        return Err(error::ErrorKind::UnexpectedEndOfInput.into());
+        return Err(UnexpectedEndOfInput {});
     }
 
     if input[0] == b'@' {
@@ -68,7 +51,7 @@ fn parse_tags(input: &[u8]) -> ParseResult<Option<Vec<TagRange>>> {
             let key_start = position;
             while input[position] != b'=' && input[position] != b';' {
                 if input[position] == b' ' {
-                    return Err(error::ErrorKind::UnexpectedEndOfInput.into());
+                    return Err(UnexpectedEndOfInput {});
                 }
 
                 position = move_next(position, len)?;
@@ -110,7 +93,7 @@ fn parse_prefix(input: &[u8], mut position: usize) -> ParseResult<Option<PrefixR
     let len = input.len();
 
     if position >= len {
-        return Err(error::ErrorKind::UnexpectedEndOfInput.into());
+        return Err(UnexpectedEndOfInput {});
     }
 
     if input[position] == b':' {
@@ -165,7 +148,7 @@ fn parse_prefix(input: &[u8], mut position: usize) -> ParseResult<Option<PrefixR
 fn parse_command(input: &[u8], mut position: usize) -> ParseResult<Range<usize>> {
     let len = input.len();
     if position >= len {
-        return Err(error::ErrorKind::UnexpectedEndOfInput.into());
+        return Err(UnexpectedEndOfInput {});
     }
 
     if input[0] == b' ' {
@@ -390,7 +373,8 @@ mod tests {
         let result = parse_message(
             "001 fjtest :Welcome to the Meme Loving IRC Network \
              same@me.irl",
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!("001", result.raw_command());
         assert_eq!(

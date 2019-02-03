@@ -1,5 +1,5 @@
-use message::Message;
-use error::Result;
+use crate::error::MessageParseResult as Result;
+use crate::message::Message;
 
 /// Constructs a message containing a PING command targeting the specified host.
 pub fn ping(host: &str) -> Result<Message> {
