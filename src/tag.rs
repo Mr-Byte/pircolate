@@ -54,7 +54,7 @@ impl<'a> DoubleEndedIterator for TagIter<'a> {
 /// It is used to search for a specified tag and provide stronglyy typed access to it.
 pub trait Tag<'a> {
     /// The name of the tag being searched for.
-    fn name() -> &'static str;
+    const NAME: &'static str;
 
     /// This method attempts to parse the tag input into a strongly typed representation.
     /// If parsing failes, it returns `None`.
@@ -68,7 +68,7 @@ pub trait Tag<'a> {
     where
         Self: Sized,
     {
-        tags.find(|&(key, _)| key == Self::name())
+        tags.find(|&(key, _)| key == Self::NAME)
             .and_then(|(_, value)| Self::parse(value))
     }
 }

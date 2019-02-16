@@ -42,7 +42,7 @@ impl<'a> DoubleEndedIterator for ArgumentIter<'a> {
 /// parsing capability for usage with the `Message::command` method.
 pub trait Command<'a> {
     /// Provides the name of the command to be matched. Examples include `PRIVMSG` or `PING`.
-    fn name() -> &'static str;
+    const NAME: &'static str;
 
     /// This method takes in an iterator of arguments associated with a `Message` and attempts
     /// to parse the arguments into a matched `Command`.  If no match is found, None is returned.
@@ -57,7 +57,7 @@ pub trait Command<'a> {
     where
         Self: Sized,
     {
-        if command == Self::name() {
+        if command == Self::NAME {
             Self::parse(arguments)
         } else {
             None
@@ -139,9 +139,7 @@ macro_rules! command {
         pub struct $command_name;
 
         impl<'a> $crate::command::Command<'a> for $command_name {
-            fn name() -> &'static str {
-                $command
-            }
+            const NAME: &'static str = $command;
 
             fn parse(_: impl DoubleEndedIterator<Item = &'a str>) -> Option<$command_name> {
                 Some($command_name)
@@ -152,22 +150,14 @@ macro_rules! command {
     ($(#[$meta:meta])* ($command:expr => $command_name:ident($($name:ident),+))) => {
         $(#[$meta])*
 
-        pub struct $command_name($(pub expand_param!($name)),+);
+        pub struct $command_name<'a>($(pub expand_param!($name)),+);
 
-        impl<'a> $crate::command::Command<'a> for $command_name {
-            fn name() -> &'static str {
-                $command
-            }
+        impl<'a> $crate::command::Command<'a> for $command_name<'a> {
+            const NAME: &'static str = $command;
 
-            fn parse(mut arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<$command_name> {
-                $(
-                    let $name = match arguments.next() {
-                        Some(value) => value,
-                        None => return None
-                    };
-                )+
-
-                Some($command_name($($name.to_owned()),*))
+            fn parse(mut arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<$command_name<'a>> {
+                $(let $name = arguments.next()?;)+
+                Some($command_name($($name),*))
             }
         }
     };
@@ -176,9 +166,7 @@ macro_rules! command {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! expand_param {
-    ($i:ident) => {
-        String
-    };
+    ($i:ident) => { &'a str };
 }
 
 command! {
@@ -280,25 +268,15 @@ pub enum NamesReplyChannelType {
 pub struct NamesReply(pub NamesReplyChannelType, pub String, pub Vec<String>);
 
 impl<'a> Command<'a> for NamesReply {
-    fn name() -> &'static str {
-        "353"
-    }
+    const NAME: &'static str = "353";
 
     fn parse(arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<NamesReply> {
         // NOTE: Since the first parameter is optional, it's just easier to extract
         // components in reverse.
         let mut arguments = arguments.rev();
 
-        let names = match arguments.next() {
-            Some(names) => names.split_whitespace(),
-            None => return None,
-        };
-
-        let channel = match arguments.next() {
-            Some(channel) => channel,
-            None => return None,
-        };
-
+        let names = arguments.next()?.split_whitespace();
+        let channel = arguments.next()?;
         let channel_type = match arguments.next() {
             Some(channel_type) => match channel_type {
                 "@" => NamesReplyChannelType::Secret,
@@ -319,24 +297,15 @@ impl<'a> Command<'a> for NamesReply {
 pub struct EndNamesReply(pub String, pub String);
 
 impl<'a> Command<'a> for EndNamesReply {
-    fn name() -> &'static str {
-        "366"
-    }
+    const NAME: &'static str = "366";
 
     fn parse(arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<EndNamesReply> {
         // NOTE: Some servers are bad and include non-standard args at the start.
         // So the parameters are extracted in reverse to compensate.
         let mut arguments = arguments.rev();
 
-        let message = match arguments.next() {
-            Some(message) => message,
-            None => return None,
-        };
-
-        let channel = match arguments.next() {
-            Some(channel) => channel,
-            None => return None,
-        };
+        let message = arguments.next()?;
+        let channel = arguments.next()?;
 
         Some(EndNamesReply(channel.to_owned(), message.to_owned()))
     }
