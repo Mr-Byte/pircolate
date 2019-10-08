@@ -4,14 +4,15 @@
 //! The module also contains several constructor methods for constructing
 //! messages to be sent to the server.
 
-pub mod client;
 mod parser;
-pub mod server;
+#[cfg(feature = "twitch_client")]
+pub mod twitch_client;
 
 use crate::command::{ArgumentIter, Command};
 use crate::error::MessageParseError;
 use crate::tag::{Tag, TagIter};
 
+use std::convert::TryFrom;
 use std::ops::Range;
 
 type MesssageParseResult = Result<Message, MessageParseError>;
@@ -38,13 +39,6 @@ pub struct Message {
 }
 
 impl Message {
-    /// Attempt to construct a new message from the given raw IRC message.
-    pub fn try_from(value: String) -> MesssageParseResult {
-        let result = parser::parse_message(value)?;
-
-        Ok(result)
-    }
-
     /// A strongly typed interface for determining the type of the command
     /// and retrieving the values of the command.
     pub fn command<'a, T>(&'a self) -> Option<T>
@@ -120,5 +114,13 @@ impl std::str::FromStr for Message {
 
     fn from_str(input: &str) -> MesssageParseResult {
         Message::try_from(input.to_owned())
+    }
+}
+
+impl TryFrom<String> for Message {
+    type Error = MessageParseError;
+
+    fn try_from(value: String) -> MesssageParseResult {
+        Ok(parser::parse_message(value)?)
     }
 }

@@ -311,118 +311,118 @@ impl<'a> Command<'a> for EndNamesReply {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::message::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::message::*;
 
-    #[test]
-    fn test_ping_command() {
-        let message = server::ping("test.host.com").unwrap();
-        let Ping(host) = message.command::<Ping>().unwrap();
+//     #[test]
+//     fn test_ping_command() {
+//         let message = server::ping("test.host.com").unwrap();
+//         let Ping(host) = message.command::<Ping>().unwrap();
 
-        assert_eq!("test.host.com", host);
-    }
+//         assert_eq!("test.host.com", host);
+//     }
 
-    #[test]
-    fn test_pong_command() {
-        let message = client::pong("test.host.com").unwrap();
-        let Pong(host) = message.command::<Pong>().unwrap();
+//     #[test]
+//     fn test_pong_command() {
+//         let message = client::pong("test.host.com").unwrap();
+//         let Pong(host) = message.command::<Pong>().unwrap();
 
-        assert_eq!("test.host.com", host);
-    }
+//         assert_eq!("test.host.com", host);
+//     }
 
-    #[test]
-    fn test_privmsg_command() {
-        let message = client::priv_msg("#channel", "This is a message!").unwrap();
-        let PrivMsg(target, message) = message.command::<PrivMsg>().unwrap();
+//     #[test]
+//     fn test_privmsg_command() {
+//         let message = client::priv_msg("#channel", "This is a message!").unwrap();
+//         let PrivMsg(target, message) = message.command::<PrivMsg>().unwrap();
 
-        assert_eq!("#channel", target);
-        assert_eq!("This is a message!", message);
-    }
+//         assert_eq!("#channel", target);
+//         assert_eq!("This is a message!", message);
+//     }
 
-    #[test]
-    fn test_welcome_command() {
-        let msg = server::welcome("robots", "our overlords").unwrap();
-        let Welcome(username, message) = msg.command::<Welcome>().unwrap();
+//     #[test]
+//     fn test_welcome_command() {
+//         let msg = server::welcome("robots", "our overlords").unwrap();
+//         let Welcome(username, message) = msg.command::<Welcome>().unwrap();
 
-        assert_eq!("robots", username);
-        assert_eq!("our overlords", message);
-    }
+//         assert_eq!("robots", username);
+//         assert_eq!("our overlords", message);
+//     }
 
-    #[test]
-    fn test_your_host_command() {
-        let msg = server::your_host("robots", "our overlords").unwrap();
-        let YourHost(username, message) = msg.command::<YourHost>().unwrap();
+//     #[test]
+//     fn test_your_host_command() {
+//         let msg = server::your_host("robots", "our overlords").unwrap();
+//         let YourHost(username, message) = msg.command::<YourHost>().unwrap();
 
-        assert_eq!("robots", username);
-        assert_eq!("our overlords", message);
-    }
+//         assert_eq!("robots", username);
+//         assert_eq!("our overlords", message);
+//     }
 
-    #[test]
-    fn test_created_command() {
-        let msg = server::created("robots", "our overlords").unwrap();
-        let Created(username, message) = msg.command::<Created>().unwrap();
+//     #[test]
+//     fn test_created_command() {
+//         let msg = server::created("robots", "our overlords").unwrap();
+//         let Created(username, message) = msg.command::<Created>().unwrap();
 
-        assert_eq!("robots", username);
-        assert_eq!("our overlords", message);
-    }
+//         assert_eq!("robots", username);
+//         assert_eq!("our overlords", message);
+//     }
 
-    #[test]
-    fn test_server_info_command() {
-        let msg = server::server_info("robots", "our overlords").unwrap();
-        let ServerInfo(username, message) = msg.command::<ServerInfo>().unwrap();
+//     #[test]
+//     fn test_server_info_command() {
+//         let msg = server::server_info("robots", "our overlords").unwrap();
+//         let ServerInfo(username, message) = msg.command::<ServerInfo>().unwrap();
 
-        assert_eq!("robots", username);
-        assert_eq!("our overlords", message);
-    }
+//         assert_eq!("robots", username);
+//         assert_eq!("our overlords", message);
+//     }
 
-    #[test]
-    fn test_names_reply_command() {
-        let msg: Message = "353 = #test :robot1 robot2 robot3".parse().unwrap();
-        let NamesReply(channel_type, channel, users) = msg.command::<NamesReply>().unwrap();
+//     #[test]
+//     fn test_names_reply_command() {
+//         let msg: Message = "353 = #test :robot1 robot2 robot3".parse().unwrap();
+//         let NamesReply(channel_type, channel, users) = msg.command::<NamesReply>().unwrap();
 
-        let expected_users = vec!["robot1", "robot2", "robot3"];
+//         let expected_users = vec!["robot1", "robot2", "robot3"];
 
-        assert_eq!(NamesReplyChannelType::Other, channel_type);
-        assert_eq!("#test", channel);
-        assert_eq!(expected_users, users);
-    }
+//         assert_eq!(NamesReplyChannelType::Other, channel_type);
+//         assert_eq!("#test", channel);
+//         assert_eq!(expected_users, users);
+//     }
 
-    #[test]
-    fn test_command_match_with_single_branchj() {
-        let message = client::priv_msg("#channel", "This is a message!").unwrap();
+//     #[test]
+//     fn test_command_match_with_single_branchj() {
+//         let message = client::priv_msg("#channel", "This is a message!").unwrap();
 
-        command_match! {
-            message => {
-                PrivMsg(target, message) => {
-                    assert_eq!(target, "#channel");
-                    assert_eq!(message, "This is a message!");
-                },
-                _ => {
-                    panic!("Command was not matched.")
-                }
-            }
-        }
-    }
+//         command_match! {
+//             message => {
+//                 PrivMsg(target, message) => {
+//                     assert_eq!(target, "#channel");
+//                     assert_eq!(message, "This is a message!");
+//                 },
+//                 _ => {
+//                     panic!("Command was not matched.")
+//                 }
+//             }
+//         }
+//     }
 
-    #[test]
-    fn test_command_match_with_multiple_branches() {
-        let message = client::priv_msg("#channel", "This is a message!").unwrap();
+//     #[test]
+//     fn test_command_match_with_multiple_branches() {
+//         let message = client::priv_msg("#channel", "This is a message!").unwrap();
 
-        command_match! {
-            message => {
-                Ping(_) => panic!("Command was inadvertently matched."),
-                Pong(_) => panic!("Command was inadvertently matched."),
-                Welcome(_, _) => panic!("Command was inadvertently matched."),
-                PrivMsg(target, message) => {
-                    assert_eq!(target, "#channel");
-                    assert_eq!(message, "This is a message!");
-                },
-                _ => {
-                    panic!("Command was not matched.")
-                }
-            }
-        }
-    }
-}
+//         command_match! {
+//             message => {
+//                 Ping(_) => panic!("Command was inadvertently matched."),
+//                 Pong(_) => panic!("Command was inadvertently matched."),
+//                 Welcome(_, _) => panic!("Command was inadvertently matched."),
+//                 PrivMsg(target, message) => {
+//                     assert_eq!(target, "#channel");
+//                     assert_eq!(message, "This is a message!");
+//                 },
+//                 _ => {
+//                     panic!("Command was not matched.")
+//                 }
+//             }
+//         }
+//     }
+// }

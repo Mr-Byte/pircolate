@@ -7,4 +7,11 @@ description = "Parser and interface for IRCv3 messages."
 edition = "2018"
 
 [dependencies]
-failure = "^0.1"
+anyhow = "1.0.1"
+err-derive = "0.1.6"
+
+[features]
+default = []
+
+# Twitch IRC client support.
+twitch-client = []
