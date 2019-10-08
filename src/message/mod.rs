@@ -5,7 +5,8 @@
 //! messages to be sent to the server.
 
 mod parser;
-#[cfg(feature = "twitch_client")]
+
+#[cfg(feature = "twitch-client")]
 pub mod twitch_client;
 
 use crate::command::{ArgumentIter, Command};
