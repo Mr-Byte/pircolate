@@ -43,9 +43,9 @@ fn parse_tags(input: &[u8]) -> ParseResult<Option<Vec<TagRange>>> {
     }
 
     if input[0] == b'@' {
-        let mut tags: Vec<TagRange> = Vec::new();
-        let mut position = 1; // We can skip the @.
         let len = input.len();
+        let mut position = move_next(0, len)?; // Skip the @
+        let mut tags: Vec<TagRange> = Vec::new();
 
         loop {
             let key_start = position;

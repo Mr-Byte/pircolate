@@ -125,3 +125,11 @@ impl TryFrom<String> for Message {
         Ok(parser::parse_message(value)?)
     }
 }
+
+impl<'a> TryFrom<&'a str> for Message {
+    type Error = MessageParseError;
+
+    fn try_from(value: &'a str) -> MesssageParseResult {
+        Ok(parser::parse_message(value)?)
+    }
+}

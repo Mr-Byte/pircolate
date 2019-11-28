@@ -76,9 +76,10 @@ pub trait Command<'a> {
 /// #
 /// # use pircolate::message;
 /// # use pircolate::command::Ping;
+/// # use std::convert::TryFrom;
 /// #
 /// # fn main() {
-/// #   let msg = message::Message::try_from("TEST bob :hello, world!".to_owned()).unwrap();
+/// #   let msg = message::Message::try_from("TEST bob :hello, world!").unwrap();
 /// command_match! {
 ///     msg => {
 ///         Ping(source) => println!("{}", source),
@@ -119,6 +120,7 @@ macro_rules! command_match {
 /// #
 /// # use pircolate::message;
 /// # use pircolate::command::Ping;
+/// # use std::convert::TryFrom;
 /// #
 /// command! {
 ///   /// Some command!
@@ -126,7 +128,7 @@ macro_rules! command_match {
 /// }
 /// #
 /// # fn main() {
-/// #   let msg = message::Message::try_from("TEST bob :hello, world!".to_owned()).unwrap();
+/// #   let msg = message::Message::try_from("TEST bob :hello, world!").unwrap();
 /// if let Some(Test(user, message)) = msg.command::<Test>() {
 ///     println!("<{}> {}", user, message);
 /// }
@@ -178,9 +180,10 @@ command! {
     /// # extern crate pircolate;
     /// # use pircolate::message;
     /// # use pircolate::command::Ping;
+    /// # use std::convert::TryFrom;
     /// #
     /// # fn main() {
-    /// # let msg = message::server::ping("test.host.com").unwrap();
+    /// # let msg = message::Message::try_from("PING :test.host.com").unwrap();
     /// if let Some(Ping(host)) = msg.command::<Ping>() {
     ///     println!("PING from {}", host);
     /// }
@@ -198,9 +201,10 @@ command! {
     /// # extern crate pircolate;
     /// # use pircolate::message;
     /// # use pircolate::command::Pong;
+    /// # use std::convert::TryFrom;
     /// #
     /// # fn main() {
-    /// # let msg = message::client::pong("test.host.com").unwrap();
+    /// # let msg = message::Message::try_from("PONG :test.host.com").unwrap();
     /// if let Some(Pong(host)) = msg.command::<Pong>() {
     ///    println!("PONG from {}.", host);
     /// }
@@ -219,9 +223,10 @@ command! {
     /// # extern crate pircolate;
     /// # use pircolate::message;
     /// # use pircolate::command::PrivMsg;
+    /// # use std::convert::TryFrom;
     /// #
     /// # fn main() {
-    /// # let msg = message::client::priv_msg("memelord", "memes are great").unwrap();
+    /// # let msg = message::Message::try_from("PRIVMSG memelord :memes are great").unwrap();
     /// if let Some(PrivMsg(user, message)) = msg.command::<PrivMsg>() {
     ///     println!("<{}> {}.", user, message);
     /// }
@@ -233,10 +238,6 @@ command! {
 command! {
     ("JOIN" => Join(channel))
 }
-
-// command! {
-//     ("PART" => Part(channel))
-// }
 
 command! {
     /// Represents a WELCOME numeric. The first element is the unsername and the second element is the welcome message.
@@ -326,7 +327,7 @@ impl<'a> Command<'a> for EndNamesReply {
 
 //     #[test]
 //     fn test_pong_command() {
-//         let message = client::pong("test.host.com").unwrap();
+//         let message = twitch_client::pong("test.host.com").unwrap();
 //         let Pong(host) = message.command::<Pong>().unwrap();
 
 //         assert_eq!("test.host.com", host);
@@ -334,7 +335,7 @@ impl<'a> Command<'a> for EndNamesReply {
 
 //     #[test]
 //     fn test_privmsg_command() {
-//         let message = client::priv_msg("#channel", "This is a message!").unwrap();
+//         let message = twitch_client::priv_msg("#channel", "This is a message!").unwrap();
 //         let PrivMsg(target, message) = message.command::<PrivMsg>().unwrap();
 
 //         assert_eq!("#channel", target);
@@ -391,7 +392,7 @@ impl<'a> Command<'a> for EndNamesReply {
 
 //     #[test]
 //     fn test_command_match_with_single_branchj() {
-//         let message = client::priv_msg("#channel", "This is a message!").unwrap();
+//         let message = twitch_client::priv_msg("#channel", "This is a message!").unwrap();
 
 //         command_match! {
 //             message => {
@@ -408,7 +409,7 @@ impl<'a> Command<'a> for EndNamesReply {
 
 //     #[test]
 //     fn test_command_match_with_multiple_branches() {
-//         let message = client::priv_msg("#channel", "This is a message!").unwrap();
+//         let message = twitch_client::priv_msg("#channel", "This is a message!").unwrap();
 
 //         command_match! {
 //             message => {
