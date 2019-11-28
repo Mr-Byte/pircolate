@@ -44,7 +44,7 @@ impl Message {
     /// and retrieving the values of the command.
     pub fn command<'a, T>(&'a self) -> Option<T>
     where
-        T: Command<'a>,
+        T: Command<'a> + 'a,
     {
         <T as Command>::try_match(self.raw_command(), self.raw_args())
     }
@@ -53,7 +53,7 @@ impl Message {
     /// a message.
     pub fn tag<'a, T>(&'a self) -> Option<T>
     where
-        T: Tag<'a>,
+        T: Tag<'a> + 'a,
     {
         <T as Tag>::try_match(self.raw_tags())
     }

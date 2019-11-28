@@ -13,9 +13,7 @@ pub struct TagIter<'a> {
 }
 
 impl<'a> TagIter<'a> {
-    // This is intended for internal usage and thus hidden.
-    #[doc(hidden)]
-    pub fn new(
+    pub(crate) fn new(
         source: &'a str,
         iter: Iter<'a, (Range<usize>, Option<Range<usize>>)>,
     ) -> TagIter<'a> {

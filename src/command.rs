@@ -12,9 +12,7 @@ pub struct ArgumentIter<'a> {
 }
 
 impl<'a> ArgumentIter<'a> {
-    // This is intended for internal usage and thus hidden.
-    #[doc(hidden)]
-    pub fn new(source: &'a str, iter: Iter<'a, Range<usize>>) -> ArgumentIter<'a> {
+    pub(crate) fn new(source: &'a str, iter: Iter<'a, Range<usize>>) -> ArgumentIter<'a> {
         ArgumentIter {
             source: source,
             iter: iter,
@@ -46,14 +44,14 @@ pub trait Command<'a> {
 
     /// This method takes in an iterator of arguments associated with a `Message` and attempts
     /// to parse the arguments into a matched `Command`.  If no match is found, None is returned.
-    fn parse(arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<Self>
+    fn parse(arguments: ArgumentIter<'a>) -> Option<Self>
     where
         Self: Sized;
 
     /// A default implementation that takes in the given command name and arguments and attempts to match
     /// the command and parse the arguments into a strongly typed representation. If there is no match
     /// or the parse fails, it returns `None`.
-    fn try_match(command: &str, arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<Self>
+    fn try_match(command: &str, arguments: ArgumentIter<'a>) -> Option<Self>
     where
         Self: Sized,
     {
@@ -120,6 +118,7 @@ macro_rules! command_match {
 /// #
 /// # use pircolate::message;
 /// # use pircolate::command::Ping;
+/// # use pircolate::command::ArgumentIter;
 /// # use std::convert::TryFrom;
 /// #
 /// command! {
@@ -143,7 +142,7 @@ macro_rules! command {
         impl<'a> $crate::command::Command<'a> for $command_name {
             const NAME: &'static str = $command;
 
-            fn parse(_: impl DoubleEndedIterator<Item = &'a str>) -> Option<$command_name> {
+            fn parse(_: ArgumentIter<'a>) -> Option<$command_name> {
                 Some($command_name)
             }
         }
@@ -157,7 +156,7 @@ macro_rules! command {
         impl<'a> $crate::command::Command<'a> for $command_name<'a> {
             const NAME: &'static str = $command;
 
-            fn parse(mut arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<$command_name<'a>> {
+            fn parse(mut arguments: ArgumentIter<'a>) -> Option<$command_name<'a>> {
                 $(let $name = arguments.next()?;)+
                 Some($command_name($($name),*))
             }
@@ -271,7 +270,7 @@ pub struct NamesReply(pub NamesReplyChannelType, pub String, pub Vec<String>);
 impl<'a> Command<'a> for NamesReply {
     const NAME: &'static str = "353";
 
-    fn parse(arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<NamesReply> {
+    fn parse(arguments: ArgumentIter<'a>) -> Option<NamesReply> {
         // NOTE: Since the first parameter is optional, it's just easier to extract
         // components in reverse.
         let mut arguments = arguments.rev();
@@ -300,7 +299,7 @@ pub struct EndNamesReply(pub String, pub String);
 impl<'a> Command<'a> for EndNamesReply {
     const NAME: &'static str = "366";
 
-    fn parse(arguments: impl DoubleEndedIterator<Item = &'a str>) -> Option<EndNamesReply> {
+    fn parse(arguments: ArgumentIter<'a>) -> Option<EndNamesReply> {
         // NOTE: Some servers are bad and include non-standard args at the start.
         // So the parameters are extracted in reverse to compensate.
         let mut arguments = arguments.rev();
