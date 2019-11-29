@@ -18,10 +18,7 @@ pub struct ArgumentIter<'a> {
 
 impl<'a> ArgumentIter<'a> {
     pub(crate) fn new(source: &'a str, iter: Iter<'a, Range<usize>>) -> ArgumentIter<'a> {
-        ArgumentIter {
-            source: source,
-            iter: iter,
-        }
+        ArgumentIter { source, iter }
     }
 }
 

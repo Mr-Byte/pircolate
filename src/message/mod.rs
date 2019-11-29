@@ -15,11 +15,12 @@ use crate::command::{ArgumentIter, Command};
 use crate::error::MessageParseError;
 use crate::tag::{Tag, TagIter};
 
-use std::borrow::Cow;
+use bytes::Bytes;
+
 use std::convert::TryFrom;
 use std::ops::Range;
 
-type MesssageParseResult<'a> = Result<Message<'a>, MessageParseError>;
+type MesssageParseResult = Result<Message, MessageParseError>;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct PrefixRange {
@@ -34,29 +35,29 @@ type TagRange = (Range<usize>, Option<Range<usize>>);
 /// Representation of IRC messages that splits a message into its constituent
 /// parts specified in RFC1459 and the IRCv3 spec.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Message<'a> {
-    message: Cow<'a, str>,
+pub struct Message {
+    message: Bytes,
     tags: Option<Vec<TagRange>>,
     prefix: Option<PrefixRange>,
     command: Range<usize>,
     arguments: Option<Vec<Range<usize>>>,
 }
 
-impl<'a> Message<'a> {
+impl Message {
     /// A strongly typed interface for determining the type of the command
     /// and retrieving the values of the command.
-    pub fn command<T>(&'a self) -> Option<T>
+    pub fn command<'a, T>(&'a self) -> Option<T>
     where
-        T: Command<'a> + 'a,
+        T: Command<'a>,
     {
         <T as Command>::try_match(self.raw_command(), self.raw_args())
     }
 
     /// A strongly type way of accessing a specified tag associated with
     /// a message.
-    pub fn tag<T>(&'a self) -> Option<T>
+    pub fn tag<'a, T>(&'a self) -> Option<T>
     where
-        T: Tag<'a> + 'a,
+        T: Tag<'a>,
     {
         <T as Tag>::try_match(self.raw_tags())
     }
@@ -65,10 +66,16 @@ impl<'a> Message<'a> {
     /// a user or host associated with the prefix, it will also return those.
     pub fn prefix(&self) -> Option<(&str, Option<&str>, Option<&str>)> {
         if let Some(ref prefix_range) = self.prefix {
-            let user = prefix_range.user.clone().map(|user| &self.message[user]);
-            let host = prefix_range.host.clone().map(|host| &self.message[host]);
+            let user = prefix_range
+                .user
+                .clone()
+                .map(|user| &self.raw_message()[user]);
+            let host = prefix_range
+                .host
+                .clone()
+                .map(|host| &self.raw_message()[host]);
 
-            Some((&self.message[prefix_range.prefix.clone()], user, host))
+            Some((&self.raw_message()[prefix_range.prefix.clone()], user, host))
         } else {
             None
         }
@@ -78,16 +85,16 @@ impl<'a> Message<'a> {
     /// this message.
     pub fn raw_tags(&self) -> TagIter {
         if let Some(ref tags) = self.tags {
-            TagIter::new(&self.message, tags.iter())
+            TagIter::new(&self.raw_message(), tags.iter())
         } else {
-            TagIter::new(&self.message, [].iter())
+            TagIter::new(&self.raw_message(), [].iter())
         }
     }
 
     /// Attempt to get the raw prefix value associated with this message.
     pub fn raw_prefix(&self) -> Option<&str> {
         if let Some(ref prefix_range) = self.prefix {
-            Some(&self.message[prefix_range.raw_prefix.clone()])
+            Some(&self.raw_message()[prefix_range.raw_prefix.clone()])
         } else {
             None
         }
@@ -95,36 +102,55 @@ impl<'a> Message<'a> {
 
     /// Retrieve the raw command associated with this message.
     pub fn raw_command(&self) -> &str {
-        &self.message[self.command.clone()]
+        unsafe { std::str::from_utf8_unchecked(&self.message[self.command.clone()]) }
     }
 
     /// Get an iterator to the raw arguments associated with this message.
     pub fn raw_args(&self) -> ArgumentIter {
         if let Some(ref arguments) = self.arguments {
-            ArgumentIter::new(&self.message, arguments.iter())
+            ArgumentIter::new(self.raw_message(), arguments.iter())
         } else {
-            ArgumentIter::new(&self.message, [].iter())
+            ArgumentIter::new(self.raw_message(), [].iter())
         }
     }
 
     /// Get the raw IRC command this message was constrcuted from.
+    #[inline]
     pub fn raw_message(&self) -> &str {
-        &self.message
+        // NOTE: This is safe because the only way to obtain a Message is to run it through the parser
+        // which validates that the input is a valid UTF-8 string before proceeding.
+        unsafe { std::str::from_utf8_unchecked(&self.message) }
     }
 }
 
-impl<'a> TryFrom<String> for Message<'a> {
+impl TryFrom<String> for Message {
     type Error = MessageParseError;
 
-    fn try_from(value: String) -> MesssageParseResult<'a> {
-        parser::parse_message(Cow::from(value)).map_err(Into::into)
+    fn try_from(value: String) -> MesssageParseResult {
+        parser::parse_message(value)
     }
 }
 
-impl<'a> TryFrom<&'a str> for Message<'a> {
+impl TryFrom<Bytes> for Message {
     type Error = MessageParseError;
 
-    fn try_from(value: &'a str) -> MesssageParseResult<'a> {
-        parser::parse_message(Cow::from(value)).map_err(Into::into)
+    fn try_from(value: Bytes) -> MesssageParseResult {
+        parser::parse_message(value)
+    }
+}
+
+impl<'a> TryFrom<&'a [u8]> for Message {
+    type Error = MessageParseError;
+
+    fn try_from(value: &'a [u8]) -> MesssageParseResult {
+        parser::parse_message(Bytes::copy_from_slice(value))
+    }
+}
+
+impl<'a> TryFrom<&'a str> for Message {
+    type Error = MessageParseError;
+
+    fn try_from(value: &'a str) -> MesssageParseResult {
+        parser::parse_message(Bytes::copy_from_slice(value.as_bytes()))
     }
 }

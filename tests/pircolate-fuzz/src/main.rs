@@ -1,11 +1,12 @@
 use std::convert::TryFrom;
 
+use bytes::Bytes;
+
 fn main() {
     loop {
         honggfuzz::fuzz!(|data: &[u8]| {
-            if let Ok(data) = std::str::from_utf8(data) {
-                eprintln!("{:?}", pircolate::message::Message::try_from(data));
-            }
+            let bytes = Bytes::copy_from_slice(data);
+            eprintln!("{:?}", pircolate::message::Message::try_from(bytes));
         });
     }
 }
