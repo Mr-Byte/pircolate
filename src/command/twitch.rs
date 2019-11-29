@@ -143,10 +143,11 @@ mod tests {
     use super::*;
     use crate::message::Message;
     use anyhow::{Context, Result};
+    use std::convert::TryFrom;
 
     #[test]
     fn test_ping_command() -> Result<()> {
-        let message: Message = "PING :test.host.com".parse()?;
+        let message: Message = Message::try_from("PING :test.host.com")?;
         let Ping(host) = message.command().context("Invalid ping command.")?;
 
         assert_eq!("test.host.com", host);
@@ -155,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_pong_command() -> Result<()> {
-        let message: Message = "PONG :test.host.com".parse()?;
+        let message: Message = Message::try_from("PONG :test.host.com")?;
         let Pong(host) = message.command().context("Invalid pong command.")?;
 
         assert_eq!("test.host.com", host);
@@ -164,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_privmsg_command() -> Result<()> {
-        let message: Message = "PRIVMSG #channel :This is a message!".parse()?;
+        let message: Message = Message::try_from("PRIVMSG #channel :This is a message!")?;
         let PrivMsg(target, message) = message.command().context("Invalid privmsg command.")?;
 
         assert_eq!("#channel", target);
@@ -174,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_welcome_command() -> Result<()> {
-        let msg: Message = "001 robots :our overlords".parse()?;
+        let msg: Message = Message::try_from("001 robots :our overlords")?;
         let Welcome(username, message) = msg.command().context("Invalid welcome command.")?;
 
         assert_eq!("robots", username);
@@ -185,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_your_host_command() -> Result<()> {
-        let msg: Message = "002 robots :our overlords".parse()?;
+        let msg: Message = Message::try_from("002 robots :our overlords")?;
         let YourHost(username, message) = msg.command().context("Invalid your host command.")?;
 
         assert_eq!("robots", username);
@@ -196,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_created_command() -> Result<()> {
-        let msg: Message = "003 robots :our overlords".parse()?;
+        let msg: Message = Message::try_from("003 robots :our overlords")?;
         let Created(username, message) = msg.command().context("Invalid created command.")?;
 
         assert_eq!("robots", username);
@@ -207,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_server_info_command() -> Result<()> {
-        let msg: Message = "004 robots :our overlords".parse()?;
+        let msg: Message = Message::try_from("004 robots :our overlords")?;
         let ServerInfo(username, message) =
             msg.command().context("Invalid server info command.")?;
 
@@ -219,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_names_reply_command() -> Result<()> {
-        let msg: Message = "353 = #test :robot1 robot2 robot3".parse()?;
+        let msg: Message = Message::try_from("353 = #test :robot1 robot2 robot3")?;
         let NamesReply(channel_type, channel, users) =
             msg.command().context("Invaid names reply command.")?;
 

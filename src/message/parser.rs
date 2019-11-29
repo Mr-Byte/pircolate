@@ -1,13 +1,12 @@
 use crate::error::{MessageParseError, MessageParseError::UnexpectedEndOfInput};
 use crate::message::{Message, PrefixRange, TagRange};
 
+use std::borrow::Cow;
 use std::ops::Range;
 
 type ParseResult<T> = Result<(T, usize), MessageParseError>;
 
-pub fn parse_message<M: Into<String>>(message: M) -> Result<Message, MessageParseError> {
-    let message = message.into();
-
+pub fn parse_message<'a>(message: Cow<'a, str>) -> Result<Message<'a>, MessageParseError> {
     let (tags, prefix, command, args) = {
         let input = message.as_bytes();
         let (tags, position) = parse_tags(input)?;
@@ -19,7 +18,7 @@ pub fn parse_message<M: Into<String>>(message: M) -> Result<Message, MessagePars
     };
 
     Ok(Message {
-        message: message,
+        message: Cow::from(message),
         tags: tags,
         prefix: prefix,
         command: command,
@@ -210,7 +209,7 @@ mod tests {
 
     #[test]
     fn parse_command() {
-        let result = parse_message("TEST").unwrap();
+        let result = parse_message("TEST".into()).unwrap();
 
         assert_eq!(None, result.prefix());
         assert_eq!("TEST", result.raw_command());
@@ -218,7 +217,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_prefix() {
-        let result = parse_message(":test.server.com TEST").unwrap();
+        let result = parse_message(":test.server.com TEST".into()).unwrap();
 
         assert_eq!("test.server.com", result.raw_prefix().unwrap());
         assert_eq!("TEST", result.raw_command());
@@ -226,7 +225,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_argument_following_colon() {
-        let result = parse_message("TEST :test.server.com").unwrap();
+        let result = parse_message("TEST :test.server.com".into()).unwrap();
 
         let expected_args = vec!["test.server.com"];
         let actual_args: Vec<_> = result.raw_args().collect();
@@ -237,7 +236,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_prefix_and_argument_following_colon() {
-        let result = parse_message(":other.server.com TEST :test.server.com").unwrap();
+        let result = parse_message(":other.server.com TEST :test.server.com".into()).unwrap();
 
         let expected_args = vec!["test.server.com"];
         let actual_args: Vec<_> = result.raw_args().collect();
@@ -249,7 +248,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_multiple_arguments() {
-        let result = parse_message("TEST a b c").unwrap();
+        let result = parse_message("TEST a b c".into()).unwrap();
 
         let expected_args = vec!["a", "b", "c"];
         let actual_args: Vec<_> = result.raw_args().collect();
@@ -260,7 +259,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_multiple_arguments_and_argument_following_colon() {
-        let result = parse_message("TEST a b c :Memes for all!").unwrap();
+        let result = parse_message("TEST a b c :Memes for all!".into()).unwrap();
         let expected_args = vec!["a", "b", "c", "Memes for all!"];
         let actual_args: Vec<_> = result.raw_args().collect();
 
@@ -270,7 +269,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_multiple_tags() {
-        let result = parse_message("@a=1;b=2;d=;f;a\\b=3;c= TEST").unwrap();
+        let result = parse_message("@a=1;b=2;d=;f;a\\b=3;c= TEST".into()).unwrap();
 
         let expected_tags = vec![
             ("a", Some("1")),
@@ -289,7 +288,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_multibyte_character_arguments() {
-        let result = parse_message("TEST :💖 Love 💖 Memes 💖").unwrap();
+        let result = parse_message("TEST :💖 Love 💖 Memes 💖".into()).unwrap();
 
         let expected_args = vec!["💖 Love 💖 Memes 💖"];
         let actual_args: Vec<_> = result.raw_args().collect();
@@ -300,7 +299,7 @@ mod tests {
     #[test]
     fn parse_command_with_512_byte_long_tags() {
         let message = "@a=1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 TEST";
-        let result = parse_message(message).unwrap();
+        let result = parse_message(Cow::from(message)).unwrap();
 
         let (key, value) = result.raw_tags().next().unwrap();
 
@@ -312,7 +311,7 @@ mod tests {
     #[test]
     fn parse_command_with_510_byte_long_command() {
         let message = "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
-        let result = parse_message(message).unwrap();
+        let result = parse_message(Cow::from(message)).unwrap();
 
         assert_eq!(510, result.raw_command().len());
     }
@@ -320,7 +319,7 @@ mod tests {
     #[test]
     fn parse_command_with_512_byte_long_tags_and_510_byte_long_command() {
         let message = "@a=1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111 111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
-        let result = parse_message(message).unwrap();
+        let result = parse_message(message.into()).unwrap();
 
         let (key, value) = result.raw_tags().next().unwrap();
 
@@ -331,7 +330,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_basic_prefix() {
-        let result = parse_message(":foo TEST").unwrap();
+        let result = parse_message(":foo TEST".into()).unwrap();
 
         let prefix = result.prefix();
 
@@ -340,7 +339,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_user_prefix() {
-        let result = parse_message(":foo!foobert TEST").unwrap();
+        let result = parse_message(":foo!foobert TEST".into()).unwrap();
 
         let prefix = result.prefix();
 
@@ -349,7 +348,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_user_prefix_and_host() {
-        let result = parse_message(":foo!foobert@host.test.com TEST").unwrap();
+        let result = parse_message(":foo!foobert@host.test.com TEST".into()).unwrap();
 
         let prefix = result.prefix();
 
@@ -361,7 +360,7 @@ mod tests {
 
     #[test]
     fn parse_command_with_prefix_and_host() {
-        let result = parse_message(":foo@host.test.com TEST").unwrap();
+        let result = parse_message(":foo@host.test.com TEST".into()).unwrap();
 
         let prefix = result.prefix();
 
@@ -372,7 +371,8 @@ mod tests {
     fn parse_numeric_welcome() {
         let result = parse_message(
             "001 fjtest :Welcome to the Meme Loving IRC Network \
-             same@me.irl",
+             same@me.irl"
+                .into(),
         )
         .unwrap();
 

@@ -15,10 +15,11 @@ use crate::command::{ArgumentIter, Command};
 use crate::error::MessageParseError;
 use crate::tag::{Tag, TagIter};
 
+use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::ops::Range;
 
-type MesssageParseResult = Result<Message, MessageParseError>;
+type MesssageParseResult<'a> = Result<Message<'a>, MessageParseError>;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct PrefixRange {
@@ -33,18 +34,18 @@ type TagRange = (Range<usize>, Option<Range<usize>>);
 /// Representation of IRC messages that splits a message into its constituent
 /// parts specified in RFC1459 and the IRCv3 spec.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Message {
-    message: String,
+pub struct Message<'a> {
+    message: Cow<'a, str>,
     tags: Option<Vec<TagRange>>,
     prefix: Option<PrefixRange>,
     command: Range<usize>,
     arguments: Option<Vec<Range<usize>>>,
 }
 
-impl Message {
+impl<'a> Message<'a> {
     /// A strongly typed interface for determining the type of the command
     /// and retrieving the values of the command.
-    pub fn command<'a, T>(&'a self) -> Option<T>
+    pub fn command<T>(&'a self) -> Option<T>
     where
         T: Command<'a> + 'a,
     {
@@ -53,7 +54,7 @@ impl Message {
 
     /// A strongly type way of accessing a specified tag associated with
     /// a message.
-    pub fn tag<'a, T>(&'a self) -> Option<T>
+    pub fn tag<T>(&'a self) -> Option<T>
     where
         T: Tag<'a> + 'a,
     {
@@ -112,26 +113,18 @@ impl Message {
     }
 }
 
-impl std::str::FromStr for Message {
-    type Err = MessageParseError;
+impl<'a> TryFrom<String> for Message<'a> {
+    type Error = MessageParseError;
 
-    fn from_str(input: &str) -> MesssageParseResult {
-        Message::try_from(input.to_owned())
+    fn try_from(value: String) -> MesssageParseResult<'a> {
+        parser::parse_message(Cow::from(value)).map_err(Into::into)
     }
 }
 
-impl TryFrom<String> for Message {
+impl<'a> TryFrom<&'a str> for Message<'a> {
     type Error = MessageParseError;
 
-    fn try_from(value: String) -> MesssageParseResult {
-        Ok(parser::parse_message(value)?)
-    }
-}
-
-impl<'a> TryFrom<&'a str> for Message {
-    type Error = MessageParseError;
-
-    fn try_from(value: &'a str) -> MesssageParseResult {
-        Ok(parser::parse_message(value)?)
+    fn try_from(value: &'a str) -> MesssageParseResult<'a> {
+        parser::parse_message(Cow::from(value)).map_err(Into::into)
     }
 }
