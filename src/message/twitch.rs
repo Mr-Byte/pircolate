@@ -1,8 +1,6 @@
 use crate::error::MessageParseError;
 use crate::message::Message;
 
-use std::convert::TryFrom as _;
-
 type Result<T> = std::result::Result<T, MessageParseError>;
 
 /// Constructs a message containing a PONG command targeting the specified host.

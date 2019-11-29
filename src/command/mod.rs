@@ -76,7 +76,6 @@ pub trait Command<'a> {
 /// #
 /// # use pircolate::message;
 /// # use pircolate::command::Ping;
-/// # use std::convert::TryFrom;
 /// #
 /// # fn main() {
 /// #   let msg = message::Message::try_from("TEST bob :hello, world!").unwrap();
@@ -121,7 +120,6 @@ macro_rules! command_match {
 /// # use pircolate::message;
 /// # use pircolate::command::Ping;
 /// # use pircolate::command::ArgumentIter;
-/// # use std::convert::TryFrom;
 /// #
 /// command! {
 ///   /// Some command!

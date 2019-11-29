@@ -11,7 +11,7 @@ pub fn parse_message(message: impl Into<Bytes>) -> Result<Message, MessageParseE
     let message = message.into();
     // Validate that the message is UTF-8
     let _ = std::str::from_utf8(message.as_ref())?;
-    let (tags, prefix, command, args) = {
+    let (tags, prefix, command, arguments) = {
         let input = message.as_ref();
         let (tags, position) = parse_tags(input)?;
         let (prefix, position) = parse_prefix(input, position)?;
@@ -23,10 +23,10 @@ pub fn parse_message(message: impl Into<Bytes>) -> Result<Message, MessageParseE
 
     Ok(Message {
         message,
-        tags: tags,
-        prefix: prefix,
-        command: command,
-        arguments: args,
+        tags,
+        prefix,
+        command,
+        arguments,
     })
 }
 
@@ -96,7 +96,7 @@ fn parse_prefix(input: &[u8], mut position: usize) -> ParseResult<Option<PrefixR
     let len = input.len();
 
     if position >= len {
-        return Err(UnexpectedEndOfInput {});
+        return Err(UnexpectedEndOfInput);
     }
 
     if input[position] == b':' {
@@ -151,7 +151,7 @@ fn parse_prefix(input: &[u8], mut position: usize) -> ParseResult<Option<PrefixR
 fn parse_command(input: &[u8], mut position: usize) -> ParseResult<Range<usize>> {
     let len = input.len();
     if position >= len {
-        return Err(UnexpectedEndOfInput {});
+        return Err(UnexpectedEndOfInput);
     }
 
     if input[0] == b' ' {

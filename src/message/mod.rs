@@ -17,7 +17,6 @@ use crate::tag::{Tag, TagIter};
 
 use bytes::Bytes;
 
-use std::convert::TryFrom;
 use std::ops::Range;
 
 type MesssageParseResult = Result<Message, MessageParseError>;
@@ -121,7 +120,15 @@ impl Message {
         // which validates that the input is a valid UTF-8 string before proceeding.
         unsafe { std::str::from_utf8_unchecked(&self.message) }
     }
+
+    pub fn try_from(
+        value: impl std::convert::TryInto<Message, Error = MessageParseError>,
+    ) -> MesssageParseResult {
+        value.try_into()
+    }
 }
+
+use std::convert::TryFrom;
 
 impl TryFrom<String> for Message {
     type Error = MessageParseError;

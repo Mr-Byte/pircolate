@@ -10,7 +10,6 @@ command! {
     /// # extern crate pircolate;
     /// # use pircolate::message;
     /// # use pircolate::command::Ping;
-    /// # use std::convert::TryFrom;
     /// #
     /// # fn main() {
     /// # let msg = message::Message::try_from("PING :test.host.com").unwrap();
@@ -31,7 +30,6 @@ command! {
     /// # extern crate pircolate;
     /// # use pircolate::message;
     /// # use pircolate::command::Pong;
-    /// # use std::convert::TryFrom;
     /// #
     /// # fn main() {
     /// # let msg = message::Message::try_from("PONG :test.host.com").unwrap();
@@ -53,7 +51,6 @@ command! {
     /// # extern crate pircolate;
     /// # use pircolate::message;
     /// # use pircolate::command::PrivMsg;
-    /// # use std::convert::TryFrom;
     /// #
     /// # fn main() {
     /// # let msg = message::Message::try_from("PRIVMSG memelord :memes are great").unwrap();
@@ -143,7 +140,6 @@ mod tests {
     use super::*;
     use crate::message::Message;
     use anyhow::{Context, Result};
-    use std::convert::TryFrom;
 
     #[test]
     fn test_ping_command() -> Result<()> {
