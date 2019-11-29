@@ -1,6 +1,8 @@
+use thiserror::Error;
+
 #[derive(Debug, Error)]
 pub enum MessageParseError {
-    #[error(display = "Unexpected End of Input (malformed message).")]
+    #[error("Unexpected End of Input (malformed message).")]
     UnexpectedEndOfInput,
 }
 

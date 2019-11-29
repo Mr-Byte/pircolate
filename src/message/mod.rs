@@ -7,7 +7,9 @@
 mod parser;
 
 #[cfg(feature = "twitch-client")]
-pub mod twitch_client;
+mod twitch;
+#[cfg(feature = "twitch-client")]
+pub use twitch::*;
 
 use crate::command::{ArgumentIter, Command};
 use crate::error::MessageParseError;

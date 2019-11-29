@@ -7,7 +7,10 @@ description = "Parser and interface for IRCv3 messages."
 edition = "2018"
 
 [dependencies]
-err-derive = "0.1.6"
+thiserror = "1.0"
+
+[dev-dependencies]
+anyhow = "1.0"
 
 [features]
 default = []
