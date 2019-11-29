@@ -9,5 +9,5 @@ edition = "2018"
 [dependencies]
 pircolate = { path = "../.." }
 
-bytes = "0.5"
+bytes = "0.4"
 honggfuzz = "0.5"

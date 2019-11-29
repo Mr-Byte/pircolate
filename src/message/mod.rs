@@ -143,7 +143,7 @@ impl<'a> TryFrom<&'a [u8]> for Message {
     type Error = MessageParseError;
 
     fn try_from(value: &'a [u8]) -> MesssageParseResult {
-        parser::parse_message(Bytes::copy_from_slice(value))
+        parser::parse_message(value.to_vec())
     }
 }
 
@@ -151,6 +151,6 @@ impl<'a> TryFrom<&'a str> for Message {
     type Error = MessageParseError;
 
     fn try_from(value: &'a str) -> MesssageParseResult {
-        parser::parse_message(Bytes::copy_from_slice(value.as_bytes()))
+        parser::parse_message(value.as_bytes().to_vec())
     }
 }
