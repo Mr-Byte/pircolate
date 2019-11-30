@@ -1,3 +1,4 @@
+use crate::arc_slice::ArcSlice;
 use crate::error::{MessageParseError, MessageParseError::UnexpectedEndOfInput};
 use crate::message::{Message, PrefixRange, TagRange};
 
@@ -40,7 +41,7 @@ fn move_next(value: usize, bound: usize) -> Result<usize, MessageParseError> {
     }
 }
 
-fn parse_tags(input: &[u8]) -> ParseResult<Option<Vec<TagRange>>> {
+fn parse_tags(input: &[u8]) -> ParseResult<Option<ArcSlice<TagRange>>> {
     if input.is_empty() {
         return Err(UnexpectedEndOfInput {});
     }
@@ -86,7 +87,8 @@ fn parse_tags(input: &[u8]) -> ParseResult<Option<Vec<TagRange>>> {
             position = move_next(position, len)?;
         }
 
-        Ok((Some(tags), position))
+        let slice = ArcSlice::new(tags.into_boxed_slice());
+        Ok((Some(slice), position))
     } else {
         Ok((None, 0))
     }
@@ -173,7 +175,7 @@ fn parse_command(input: &[u8], mut position: usize) -> ParseResult<Range<usize>>
     Ok((command_range, position))
 }
 
-fn parse_args(input: &[u8], mut position: usize) -> ParseResult<Option<Vec<Range<usize>>>> {
+fn parse_args(input: &[u8], mut position: usize) -> ParseResult<Option<ArcSlice<Range<usize>>>> {
     let len = input.len();
 
     if position >= len {
@@ -204,7 +206,8 @@ fn parse_args(input: &[u8], mut position: usize) -> ParseResult<Option<Vec<Range
         }
     }
 
-    Ok((Some(args), position))
+    let slice = ArcSlice::new(args.into_boxed_slice());
+    Ok((Some(slice), position))
 }
 
 #[cfg(test)]

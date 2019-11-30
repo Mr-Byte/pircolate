@@ -11,6 +11,7 @@ mod twitch;
 #[cfg(feature = "twitch-client")]
 pub use twitch::*;
 
+use crate::arc_slice::ArcSlice;
 use crate::command::{ArgumentIter, Command};
 use crate::error::MessageParseError;
 use crate::tag::{Tag, TagIter};
@@ -21,7 +22,7 @@ use std::ops::Range;
 
 type MesssageParseResult = Result<Message, MessageParseError>;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone)]
 struct PrefixRange {
     raw_prefix: Range<usize>,
     prefix: Range<usize>,
@@ -33,13 +34,13 @@ type TagRange = (Range<usize>, Option<Range<usize>>);
 
 /// Representation of IRC messages that splits a message into its constituent
 /// parts specified in RFC1459 and the IRCv3 spec.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone)]
 pub struct Message {
     message: Bytes,
-    tags: Option<Vec<TagRange>>,
+    tags: Option<ArcSlice<TagRange>>,
     prefix: Option<PrefixRange>,
     command: Range<usize>,
-    arguments: Option<Vec<Range<usize>>>,
+    arguments: Option<ArcSlice<Range<usize>>>,
 }
 
 impl Message {
