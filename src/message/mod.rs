@@ -11,14 +11,12 @@ mod twitch;
 #[cfg(feature = "twitch-client")]
 pub use twitch::*;
 
-use crate::arc_slice::ArcSlice;
 use crate::command::{ArgumentIter, Command};
 use crate::error::MessageParseError;
 use crate::tag::{Tag, TagIter};
 
-use bytes::Bytes;
-
 use std::ops::Range;
+use std::sync::Arc;
 
 type MesssageParseResult = Result<Message, MessageParseError>;
 
@@ -36,11 +34,11 @@ type TagRange = (Range<usize>, Option<Range<usize>>);
 /// parts specified in RFC1459 and the IRCv3 spec.
 #[derive(Clone)]
 pub struct Message {
-    message: Bytes,
-    tags: Option<ArcSlice<TagRange>>,
+    message: Arc<str>,
+    tags: Option<Arc<[TagRange]>>,
     prefix: Option<PrefixRange>,
     command: Range<usize>,
-    arguments: Option<ArcSlice<Range<usize>>>,
+    arguments: Option<Arc<[Range<usize>]>>,
 }
 
 impl Message {
@@ -102,7 +100,7 @@ impl Message {
 
     /// Retrieve the raw command associated with this message.
     pub fn raw_command(&self) -> &str {
-        unsafe { std::str::from_utf8_unchecked(&self.message[self.command.clone()]) }
+        &self.message[self.command.clone()]
     }
 
     /// Get an iterator to the raw arguments associated with this message.
@@ -117,9 +115,7 @@ impl Message {
     /// Get the raw IRC command this message was constrcuted from.
     #[inline]
     pub fn raw_message(&self) -> &str {
-        // NOTE: This is safe because the only way to obtain a Message is to run it through the parser
-        // which validates that the input is a valid UTF-8 string before proceeding.
-        unsafe { std::str::from_utf8_unchecked(&self.message) }
+        &self.message
     }
 
     pub fn try_from(
@@ -139,19 +135,11 @@ impl TryFrom<String> for Message {
     }
 }
 
-impl TryFrom<Bytes> for Message {
-    type Error = MessageParseError;
-
-    fn try_from(value: Bytes) -> MesssageParseResult {
-        parser::parse_message(value)
-    }
-}
-
 impl<'a> TryFrom<&'a [u8]> for Message {
     type Error = MessageParseError;
 
     fn try_from(value: &'a [u8]) -> MesssageParseResult {
-        parser::parse_message(value.to_vec())
+        parser::parse_message(std::str::from_utf8(value)?)
     }
 }
 
@@ -159,6 +147,6 @@ impl<'a> TryFrom<&'a str> for Message {
     type Error = MessageParseError;
 
     fn try_from(value: &'a str) -> MesssageParseResult {
-        parser::parse_message(value.as_bytes().to_vec())
+        parser::parse_message(value)
     }
 }

@@ -1,19 +1,16 @@
-use crate::arc_slice::ArcSlice;
 use crate::error::{MessageParseError, MessageParseError::UnexpectedEndOfInput};
 use crate::message::{Message, PrefixRange, TagRange};
 
-use bytes::Bytes;
-
 use std::ops::Range;
+use std::sync::Arc;
 
 type ParseResult<T> = Result<(T, usize), MessageParseError>;
 
-pub fn parse_message(message: impl Into<Bytes>) -> Result<Message, MessageParseError> {
+pub fn parse_message(message: impl Into<Arc<str>>) -> Result<Message, MessageParseError> {
     let message = message.into();
-    // Validate that the message is UTF-8
-    let _ = std::str::from_utf8(message.as_ref())?;
+
     let (tags, prefix, command, arguments) = {
-        let input = message.as_ref();
+        let input = message.as_bytes();
         let (tags, position) = parse_tags(input)?;
         let (prefix, position) = parse_prefix(input, position)?;
         let (command, position) = parse_command(input, position)?;
@@ -41,7 +38,7 @@ fn move_next(value: usize, bound: usize) -> Result<usize, MessageParseError> {
     }
 }
 
-fn parse_tags(input: &[u8]) -> ParseResult<Option<ArcSlice<TagRange>>> {
+fn parse_tags(input: &[u8]) -> ParseResult<Option<Arc<[TagRange]>>> {
     if input.is_empty() {
         return Err(UnexpectedEndOfInput {});
     }
@@ -87,7 +84,7 @@ fn parse_tags(input: &[u8]) -> ParseResult<Option<ArcSlice<TagRange>>> {
             position = move_next(position, len)?;
         }
 
-        let slice = ArcSlice::new(tags.into_boxed_slice());
+        let slice = tags.into();
         Ok((Some(slice), position))
     } else {
         Ok((None, 0))
@@ -175,7 +172,7 @@ fn parse_command(input: &[u8], mut position: usize) -> ParseResult<Range<usize>>
     Ok((command_range, position))
 }
 
-fn parse_args(input: &[u8], mut position: usize) -> ParseResult<Option<ArcSlice<Range<usize>>>> {
+fn parse_args(input: &[u8], mut position: usize) -> ParseResult<Option<Arc<[Range<usize>]>>> {
     let len = input.len();
 
     if position >= len {
@@ -206,7 +203,7 @@ fn parse_args(input: &[u8], mut position: usize) -> ParseResult<Option<ArcSlice<
         }
     }
 
-    let slice = ArcSlice::new(args.into_boxed_slice());
+    let slice = args.into();
     Ok((Some(slice), position))
 }
 
