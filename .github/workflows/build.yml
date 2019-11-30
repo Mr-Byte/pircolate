@@ -1,0 +1,21 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+      fail-fast: true
+    steps:
+      - uses: hecrj/setup-rust-action@v1
+      - uses: actions/checkout@master
+      - name: Build pircolate lib
+        run: cargo build --verbose --all-features
+      - name: Test pircolate lib
+        run: cargo test --verbose --all-features
