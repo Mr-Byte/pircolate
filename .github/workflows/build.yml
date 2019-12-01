@@ -1,21 +1,38 @@
 name: Build
-on:
-  push:
-    branches:
-      - master
+on: [push, pull_request]
 
 jobs:
-  build:
+  style:
+    name: Check Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install rust
+        run: rustup update
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  test:
+    name: Test
+    needs: [style]
+    env:
+      RUSTFLAGS: -Dwarnings
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-
-      fail-fast: true
+        rust: [nightly, beta, stable]
     steps:
-      - uses: hecrj/setup-rust-action@v1
       - uses: actions/checkout@master
-      - name: Build pircolate lib
-        run: cargo build --verbose --all-features
-      - name: Test pircolate lib
-        run: cargo test --verbose --all-features
+      - name: Install rust
+        run: rustup update ${{ matrix.rust }} && rustup default ${{ matrix.rust }}
+        if: matrix.os == 'ubuntu-latest'
+      - name: Install rust
+        run: (rustup update ${{ matrix.rust }}) -and (rustup default ${{ matrix.rust }})
+        if: matrix.os == 'windows-latest'
+      - name: Build
+        run: cargo build --all-features
+      - name: Test
+        run: cargo test --all-features
