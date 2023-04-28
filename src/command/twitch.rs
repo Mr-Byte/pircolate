@@ -100,7 +100,7 @@ impl Command for NamesReply<'_> {
 
     type Output<'a> = NamesReply<'a>;
 
-    fn parse<'a>(arguments: ArgumentIter<'a>) -> Option<NamesReply<'a>> {
+    fn parse(arguments: ArgumentIter<'_>) -> Option<NamesReply<'_>> {
         // NOTE: Since the first parameter is optional, it's just easier to extract
         // components in reverse.
         let mut arguments = arguments.rev();
@@ -127,7 +127,7 @@ impl Command for EndNamesReply<'_> {
 
     type Output<'a> = EndNamesReply<'a>;
 
-    fn parse<'a>(arguments: ArgumentIter<'a>) -> Option<EndNamesReply<'a>> {
+    fn parse(arguments: ArgumentIter<'_>) -> Option<EndNamesReply<'_>> {
         // NOTE: Some servers are bad and include non-standard args at the start.
         // So the parameters are extracted in reverse to compensate.
         let mut arguments = arguments.rev();
