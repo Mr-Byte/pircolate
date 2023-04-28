@@ -83,9 +83,9 @@ impl Message {
     /// this message.
     pub fn raw_tags(&self) -> TagIter {
         if let Some(ref tags) = self.tags {
-            TagIter::new(&self.raw_message(), tags.iter())
+            TagIter::new(self.raw_message(), tags.iter())
         } else {
-            TagIter::new(&self.raw_message(), [].iter())
+            TagIter::new(self.raw_message(), [].iter())
         }
     }
 

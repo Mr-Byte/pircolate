@@ -25,7 +25,7 @@ impl<'a> Iterator for TagIter<'a> {
     type Item = (&'a str, Option<&'a str>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|&(ref key, ref value)| {
+        self.iter.next().map(|(key, value)| {
             (
                 &self.source[key.clone()],
                 value.clone().map(|value| &self.source[value]),
@@ -36,7 +36,7 @@ impl<'a> Iterator for TagIter<'a> {
 
 impl<'a> DoubleEndedIterator for TagIter<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.iter.next_back().map(|&(ref key, ref value)| {
+        self.iter.next_back().map(|(key, value)| {
             (
                 &self.source[key.clone()],
                 value.clone().map(|value| &self.source[value]),
