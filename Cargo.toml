@@ -4,7 +4,7 @@ version = "0.3.0"
 authors = ["Joshua R. Rodgers <bytemr@gmail.com>"]
 license = "Apache-2.0/MIT"
 description = "Parser and interface for IRCv3 messages."
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 thiserror = "1.0"
@@ -19,6 +19,4 @@ default = []
 twitch-client = []
 
 [workspace]
-members = [
-    "tests/pircolate-fuzz"
-]
+members = ["tests/pircolate-fuzz"]

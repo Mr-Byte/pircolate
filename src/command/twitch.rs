@@ -95,10 +95,12 @@ pub enum NamesReplyChannelType {
 
 pub struct NamesReply<'a>(pub NamesReplyChannelType, pub &'a str, pub Vec<&'a str>);
 
-impl<'a> Command<'a> for NamesReply<'a> {
+impl Command for NamesReply<'_> {
     const NAME: &'static str = "353";
 
-    fn parse(arguments: ArgumentIter<'a>) -> Option<NamesReply<'a>> {
+    type Output<'a> = NamesReply<'a>;
+
+    fn parse<'a>(arguments: ArgumentIter<'a>) -> Option<NamesReply<'a>> {
         // NOTE: Since the first parameter is optional, it's just easier to extract
         // components in reverse.
         let mut arguments = arguments.rev();
@@ -120,10 +122,12 @@ impl<'a> Command<'a> for NamesReply<'a> {
 
 pub struct EndNamesReply<'a>(pub &'a str, pub &'a str);
 
-impl<'a> Command<'a> for EndNamesReply<'a> {
+impl Command for EndNamesReply<'_> {
     const NAME: &'static str = "366";
 
-    fn parse(arguments: ArgumentIter<'a>) -> Option<EndNamesReply<'a>> {
+    type Output<'a> = EndNamesReply<'a>;
+
+    fn parse<'a>(arguments: ArgumentIter<'a>) -> Option<EndNamesReply<'a>> {
         // NOTE: Some servers are bad and include non-standard args at the start.
         // So the parameters are extracted in reverse to compensate.
         let mut arguments = arguments.rev();

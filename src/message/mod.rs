@@ -46,7 +46,7 @@ impl Message {
     /// and retrieving the values of the command.
     pub fn command<'a, T>(&'a self) -> Option<T>
     where
-        T: Command<'a>,
+        T: Command<Output<'a> = T>,
     {
         <T as Command>::try_match(self.raw_command(), self.raw_args())
     }

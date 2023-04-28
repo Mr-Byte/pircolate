@@ -40,20 +40,24 @@ impl<'a> DoubleEndedIterator for ArgumentIter<'a> {
 
 /// The `Command` trait is a trait that's implemented by types wishing to provide command
 /// parsing capability for usage with the `Message::command` method.
-pub trait Command<'a> {
+pub trait Command {
+    type Output<'a>
+    where
+        Self: Command;
+
     /// Provides the name of the command to be matched. Examples include `PRIVMSG` or `PING`.
     const NAME: &'static str;
 
     /// This method takes in an iterator of arguments associated with a `Message` and attempts
     /// to parse the arguments into a matched `Command`.  If no match is found, None is returned.
-    fn parse(arguments: ArgumentIter<'a>) -> Option<Self>
+    fn parse(arguments: ArgumentIter<'_>) -> Option<Self::Output<'_>>
     where
         Self: Sized;
 
     /// A default implementation that takes in the given command name and arguments and attempts to match
     /// the command and parse the arguments into a strongly typed representation. If there is no match
     /// or the parse fails, it returns `None`.
-    fn try_match(command: &str, arguments: ArgumentIter<'a>) -> Option<Self>
+    fn try_match<'a>(command: &str, arguments: ArgumentIter<'a>) -> Option<Self::Output<'a>>
     where
         Self: Sized,
     {
@@ -71,22 +75,27 @@ pub trait Command<'a> {
 ///
 /// Match all PING commands.
 ///
-/// ```
-/// # #[macro_use] extern crate pircolate;
-/// #
-/// # use pircolate::message;
-/// # use pircolate::command::Ping;
-/// #
-/// # fn main() {
-/// #   let msg = message::Message::try_from("TEST bob :hello, world!").unwrap();
-/// command_match! {
-///     msg => {
-///         Ping(source) => println!("{}", source),
-///         _ => ()
-///     }
-/// };
-/// # }
-/// ```
+#[cfg_attr(
+    feature = "twitch_client",
+    doc = r##"
+```
+# #[macro_use] extern crate pircolate;
+#
+# use pircolate::message;
+# use pircolate::command::Ping;
+#
+# fn main() {
+#   let msg = message::Message::try_from("TEST bob :hello, world!").unwrap();
+command_match! {
+    msg => {
+        Ping(source) => println!("{}", source),
+        _ => ()
+    }
+};
+# }
+```
+"##
+)]
 #[macro_export]
 macro_rules! command_match {
     (@message=$message:expr => $command:pat => $body:expr) => {{
@@ -114,25 +123,30 @@ macro_rules! command_match {
 ///
 /// Simple command "TEST" with two &str arguments.
 ///
-/// ```
-/// # #[macro_use] extern crate pircolate;
-/// #
-/// # use pircolate::message;
-/// # use pircolate::command::Ping;
-/// # use pircolate::command::ArgumentIter;
-/// #
-/// command! {
-///   /// Some command!
-///   ("TEST" => Test(user, message))
-/// }
-/// #
-/// # fn main() {
-/// #   let msg = message::Message::try_from("TEST bob :hello, world!").unwrap();
-/// if let Some(Test(user, message)) = msg.command::<Test>() {
-///     println!("<{}> {}", user, message);
-/// }
-/// # }
-/// ```
+#[cfg_attr(
+    feature = "twitch-client",
+    doc = r##"
+```
+# #[macro_use] extern crate pircolate;
+#
+# use pircolate::message;
+# use pircolate::command::Ping;
+# use pircolate::command::ArgumentIter;
+#
+command! {
+  ///Some command!
+  ("TEST" => Test(user, message))
+}
+#
+# fn main() {
+#   let msg = message::Message::try_from("TEST bob :hello, world!").unwrap();
+if let Some(Test(user, message)) = msg.command::<Test>() {
+    println!("<{}> {}", user, message);
+}
+# }
+```
+"##
+)]
 #[macro_export]
 macro_rules! command {
     ($(#[$meta:meta])* ($command:expr => $command_name:ident())) => {
@@ -153,10 +167,12 @@ macro_rules! command {
 
         pub struct $command_name<'a>($(pub expand_param!($name)),+);
 
-        impl<'a> $crate::command::Command<'a> for $command_name<'a> {
+        impl $crate::command::Command for $command_name<'_> {
             const NAME: &'static str = $command;
 
-            fn parse(mut arguments: ArgumentIter<'a>) -> Option<$command_name<'a>> {
+            type Output<'a> = $command_name<'a>;
+
+            fn parse<'a>(mut arguments: ArgumentIter<'a>) -> Option<$command_name<'a>> {
                 $(let $name = arguments.next()?;)+
                 Some($command_name($($name),*))
             }

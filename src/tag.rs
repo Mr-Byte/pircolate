@@ -17,10 +17,7 @@ impl<'a> TagIter<'a> {
         source: &'a str,
         iter: Iter<'a, (Range<usize>, Option<Range<usize>>)>,
     ) -> TagIter<'a> {
-        TagIter {
-            source: source,
-            iter: iter,
-        }
+        TagIter { source, iter }
     }
 }
 
